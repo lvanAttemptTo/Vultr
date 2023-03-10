@@ -1,15 +1,19 @@
 library("tidyverse")
 library("rebird")
+library("shiny")
+
+
+
 
 APIkey <- "vmgu1o6c6ihc"
-consoleWrtieString <- "Species Name?
-"
+
+consoleWriteString <- ""
+
 speciesTibble <- rebird:::tax
-species <- tolower(readline(consoleWrtieString))
 lati <- 45.5
 long <- -122.6
-
-searchSpeciesTable <- function(columnSearch, columnOutput, commonName, indexOut)
+species <- "house sparrow"
+searchSpeciesTibble <- function(columnSearch, columnOutput, commonName, indexOut)
 {
   code <- ""
   place <- NaN
@@ -32,8 +36,7 @@ searchSpeciesTable <- function(columnSearch, columnOutput, commonName, indexOut)
     }
     else
     {
-      species <- tolower(readline(consoleWrtieString))
-      searchSpeciesTable(2, 3, species, FALSE)
+
     }
   }
   else
@@ -44,30 +47,46 @@ searchSpeciesTable <- function(columnSearch, columnOutput, commonName, indexOut)
     }
     else
     {
-      species <- tolower(readline(consoleWrtieString))
-      searchSpeciesTable(2, 3, species, TRUE)
+
     }
   }
 }
 
 
-ebirdCode <- searchSpeciesTable(2,3,species, FALSE)
-birdIndex <- searchSpeciesTable(2,3, species, TRUE)
+ebirdCode <- searchSpeciesTibble(2,3,species, FALSE)
+birdIndex <- searchSpeciesTibble(2,3, species, TRUE)
 print(speciesTibble[birdIndex, 1:15])
-closestSighting <- nearestobs(species = ebirdCode, lat = lati, lng = long, key = APIkey)[1,1:13]
-R <- 6371
-phi1 <- lati * pi/180
-phi2 <- closestSighting[1,8] * pi/180
-deltaPhi <- abs(closestSighting[1,8]-lati) * pi/180
-deltaLamda <- abs(closestSighting[1,9]-long) * pi /180
 
-a <- (sin(deltaPhi/2)*sin(deltaPhi/2)) + (cos(phi1) * cos(phi2) * sin(deltaLamda/2)* sin(deltaLamda/2))
-c <- 2 * atan(sqrt(a)/sqrt(1-a))
+findClosestSighting <- function(speciesCode)
+{
+  closestSighting <- nearestobs(species = speciesCode, lat = lati, lng = long, key = APIkey)[1,1:13]
+  R <- 6371
+  phi1 <- lati * pi/180
+  phi2 <- closestSighting[1,8] * pi/18
+  deltaPhi <- abs(closestSighting[1,8]-lati) * pi/180
+  deltaLamda <- abs(closestSighting[1,9]-long) * pi /180
+  
+  a <- (sin(deltaPhi/2)*sin(deltaPhi/2)) + (cos(phi1) * cos(phi2) * sin(deltaLamda/2)* sin(deltaLamda/2))
+  c <- 2 * atan(sqrt(a)/sqrt(1-a))
+  distanceOfClosestSighting = R * c
+  return(distanceOfClosestSighting)
+}
 
 
 
-distanceOfClosestSighting = R * c
-print(closestSighting)
+
+
 print("/n/n/n")
-print(c("distance: ",distanceOfClosestSighting," km"))
 
+ui <- fluidPage(
+  textInput("text", h3("TextInput"), value = "Enter Species Name"),
+  textOutput("Hello")
+)
+server <- function(input, output)
+{
+  output$Hello <- renderText({ 
+    paste(findClosestSighting(searchSpeciesTibble(2,3,input$text,FALSE)))
+  })
+}
+
+shinyApp(ui = ui, server = server)
