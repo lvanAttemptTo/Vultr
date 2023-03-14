@@ -3,101 +3,112 @@ library("rebird")
 library("shiny")
 
 
-
-
+# Vultr is a program that helps people identify birds
 APIkey <- "vmgu1o6c6ihc"
 
-consoleWriteString <- ""
-
+# this is a tibble that has all the species in it
 speciesTibble <- rebird:::tax
+# long and lat for finding nearby birds
 lati <- 45.5
 long <- -122.6
-species <- ""
-searchSpeciesTibble <- function(columnSearch, columnOutput, commonName, indexOut)
+
+# function that searches the species tibble and returns the indexes of occurrences
+searchSpeciesTibble <- function(columnSearch, term)
 {
-  code <- ""
-  place <- NaN
+  places <- list()
   
-  for (i in 1:16743)
+  for (i in 1:nrow(speciesTibble))
   {
-    if (tolower(speciesTibble[i, columnSearch]) == tolower(commonName))
+    if (tolower(speciesTibble[i, columnSearch]) == tolower(term))
     {
-      code <- toString(speciesTibble[i, columnOutput])
-      place <- i
-      break
+      append(places, i)
     }
   }
   
-  if(indexOut == FALSE)
+  if (length(places))
   {
-    if (code != "")
-    {
-      return(code)
-    }
-    else
-    {
-
-    }
+    return(places)
   }
   else
   {
-    if (!is.nan(place))
-    {
-      return(place)
-    }
-    else
-    {
-
-    }
+    return(FALSE)
   }
 }
 
 
-ebirdCode <- searchSpeciesTibble(2,3,species, FALSE)
-birdIndex <- searchSpeciesTibble(2,3, species, TRUE)
-print(speciesTibble[birdIndex, 1:15])
 
-findClosestSighting <- function(speciesCode)
+birdIndex <- searchSpeciesTibble(2, species)[1]
+ebirdCode <- speciesTibble[birdIndex, 3]
+
+findClosestSighting <- function(speciesCode, radius)
 {
-  closestSighting <- nearestobs(species = speciesCode, lat = lati, lng = long, key = APIkey)
+  closestSighting <- nearestobs(species = speciesCode, lat = lati, lng = long, key = APIkey, dist = radius)
   print(closestSighting)
-  R <- 6371
-  phi1 <- lati * pi/180
-  phi2 <- closestSighting[1,8] * pi/180
-  deltaPhi <- abs(closestSighting[1,8]-lati) * pi/180
-  deltaLamda <- abs(closestSighting[1,9]-long) * pi /180
-  
-  a <- (sin(deltaPhi/2)*sin(deltaPhi/2)) + (cos(phi1) * cos(phi2) * sin(deltaLamda/2)* sin(deltaLamda/2))
-  c <- 2 * atan(sqrt(a)/sqrt(1-a))
-  distanceOfClosestSighting <- NaN
-  distanceOfClosestSighting <- R * c
-  return(distanceOfClosestSighting)
+  if (ncol(closestSighting) != 0){
+    R <- 6371
+    phi1 <- lati * pi/180
+    phi2 <- closestSighting[1,8] * pi/180
+    deltaPhi <- abs(closestSighting[1,8]-lati) * pi/180
+    deltaLamda <- abs(closestSighting[1,9]-long) * pi /180
+    
+    a <- (sin(deltaPhi/2)*sin(deltaPhi/2)) + (cos(phi1) * cos(phi2) * sin(deltaLamda/2)* sin(deltaLamda/2))
+    c <- 2 * atan(sqrt(a)/sqrt(1-a))
+    distanceOfClosestSighting <- NaN
+    distanceOfClosestSighting <- R * c
+    return(c(distanceOfClosestSighting, closestSighting[1, 5]))
+  }
+  return("Outside Search Distance")
+}
+
+findNumOfObs <- function(speciesCode, radius)
+{
+  numSightingsTibble <- ebirdgeo(species = speciesCode, key = APIkey, lat = lati, lng = long, dist = radius)
+  numSightings <- nrow(numSightingsTibble)
+  return(numSightings)
 }
 
 
 
-
-print("/n/n/n")
-
 ui <- fluidPage(
-  sidebarLayout(
+  
+  fluidRow(
     sidebarPanel(
-      textInput("text", h3("TextInput"), value = "Enter Species Name"),
-      textOutput("Hello")
+      textInput("species", h3("Species Input"), value = ""),
+      textInput("radius", h3("Search Radius(km)"), value = 25),
+
     ),
-    mainPanel(
-      
+    sidebarPanel(
+      htmlOutput("SpeciesInfoOut"),
+      tags$head(tags$style("#SpeciesInfoOut{color: black; font-size: 18px"))
+    ),
+    sidebarPanel(
+      h3("Similar Species")
     )
+
   )
 )
 server <- function(input, output)
 {
-  output$Hello <- renderText({ 
-    inputText <- input$text
-    index <- searchSpeciesTibble(2,1,inputText, TRUE)
-    paste("Closest Sighting Distance (km):", findClosestSighting(searchSpeciesTibble(2,3,inputText,FALSE)),
-          "\n Scientific Name:", speciesTibble[index, 1],
-          "\n Family:", speciesTibble[index, 11], sep = " ")
+  output$SpeciesInfoOut <- renderText({ 
+    inputText <- input$species
+    searchRad <- strtoi(input$radius)
+    index <- searchSpeciesTibble(2,inputText)
+    print(index)
+    if (index != FALSE & !is.na(searchRad) & searchRad != 0)
+    {
+      speciesCode <- speciesTibble[index, 3]
+      HTML(paste(sep = " ",
+        "Common Name:", speciesTibble[index, 2],
+        "<br/>Scientific Name:", speciesTibble[index, 1],
+        "<br/>Family:", speciesTibble[index, 11],
+        "<br/>Closest Sighting Distance (km):", findClosestSighting(speciesCode, searchRad)[1],
+        "<br/>Location of Closest Sighting:", findClosestSighting(speciesCode, searchRad)[2],
+        "<br/>Number of Sightings in", searchRad,"km:", findNumOfObs(speciesCode, searchRad)))
+    }
+    else
+    {
+      paste("Invalid")
+    }
   })
 }
 
