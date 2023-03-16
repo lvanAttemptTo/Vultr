@@ -15,17 +15,26 @@ long <- -122.6
 # function that searches the species tibble and returns the indexes of occurrences
 searchSpeciesTibble <- function(columnSearch, term)
 {
+  if (is.na(term))
+  {
+    return(FALSE)
+  }
+  print(term)
   places <- list()
-  
+  checkTerm <- tolower(term)
+  print(checkTerm)
   for (i in 1:nrow(speciesTibble))
   {
-    if (tolower(speciesTibble[i, columnSearch]) == tolower(term))
+    print(tolower(speciesTibble[i, columnSearch]))
+    print(i)
+    if (tolower(speciesTibble[i, columnSearch]) == checkTerm)
     {
-      append(places, i)
+      places <- append(places, i)
+      print("test")
+      print(places)
     }
   }
-  
-  if (length(places))
+  if (length(places) != 0)
   {
     return(places)
   }
@@ -36,9 +45,6 @@ searchSpeciesTibble <- function(columnSearch, term)
 }
 
 
-
-birdIndex <- searchSpeciesTibble(2, species)[1]
-ebirdCode <- speciesTibble[birdIndex, 3]
 
 findClosestSighting <- function(speciesCode, radius)
 {
@@ -72,43 +78,71 @@ findNumOfObs <- function(speciesCode, radius)
 ui <- fluidPage(
   
   fluidRow(
+    # left sidebar for inputting information
     sidebarPanel(
       textInput("species", h3("Species Input"), value = ""),
       textInput("radius", h3("Search Radius(km)"), value = 25),
 
     ),
+    # middle sidebar for showing species information
     sidebarPanel(
       htmlOutput("SpeciesInfoOut"),
       tags$head(tags$style("#SpeciesInfoOut{color: black; font-size: 18px"))
     ),
+    # right sidebar for showing similar species
     sidebarPanel(
-      h3("Similar Species")
+      h3("Similar Species"),
+      htmlOutput("SimilarSpeciesOut")
     )
 
   )
 )
 server <- function(input, output)
 {
+  # output for species info
   output$SpeciesInfoOut <- renderText({ 
+    
     inputText <- input$species
     searchRad <- strtoi(input$radius)
-    index <- searchSpeciesTibble(2,inputText)
+    index <- searchSpeciesTibble(2,inputText)[[1]]
     print(index)
     if (index != FALSE & !is.na(searchRad) & searchRad != 0)
     {
       speciesCode <- speciesTibble[index, 3]
       HTML(paste(sep = " ",
-        "Common Name:", speciesTibble[index, 2],
-        "<br/>Scientific Name:", speciesTibble[index, 1],
-        "<br/>Family:", speciesTibble[index, 11],
-        "<br/>Closest Sighting Distance (km):", findClosestSighting(speciesCode, searchRad)[1],
-        "<br/>Location of Closest Sighting:", findClosestSighting(speciesCode, searchRad)[2],
-        "<br/>Number of Sightings in", searchRad,"km:", findNumOfObs(speciesCode, searchRad)))
+                 "Common Name:", speciesTibble[index, 2],
+                 "<br/>Scientific Name:", speciesTibble[index, 1],
+                 "<br/>Family:", speciesTibble[index, 11],
+                 "<br/>Closest Sighting Distance (km):", findClosestSighting(speciesCode, searchRad)[1],
+                 "<br/>Location of Closest Sighting:", findClosestSighting(speciesCode, searchRad)[2],
+                 "<br/>Number of Sightings in", searchRad,"km:", findNumOfObs(speciesCode, searchRad)))
     }
     else
     {
       paste("Invalid")
     }
+    
+  })
+  
+  output$SimilarSpeciesOut <- renderText({
+    
+    inputText <- input$species
+    searchRad <- strtoi(input$radius)
+    speciesIndex <- searchSpeciesTibble(2,inputText)[[1]]
+    speciesFamily <- speciesTibble[speciesIndex, 10][[1,1]]
+    print(speciesFamily)
+    family <- searchSpeciesTibble(10, speciesFamily)
+
+    
+      HTML(
+        paste(
+          sep = " ",
+"test"  
+        )
+      )
+    
+
+    
   })
 }
 
