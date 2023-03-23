@@ -2,6 +2,7 @@ library("tidyverse")
 library("rebird")
 library("shiny")
 library("shinyWidgets")
+library("shinydashboard")
 
 # Vultr is a program that helps people identify birds
 APIkey <- "vmgu1o6c6ihc"
@@ -57,7 +58,6 @@ findClosestSighting <- function(speciesCode, radius, ApiKey)
 {
   # polls the API and gets all of the closest sightings
   closestSighting <- nearestobs(species = speciesCode, lat = lati, lng = long, key = ApiKey, dist = radius)
-  print(closestSighting)
   # makes sure one was found
   if (ncol(closestSighting) != 0){
     # calculates the distance
@@ -83,36 +83,127 @@ findClosestSighting <- function(speciesCode, radius, ApiKey)
 
 
 
-ui <- fluidPage(
-  setBackgroundColor(color ="darkgrey"),
-  
-  fluidRow(
-    # left sidebar for inputting information
-    sidebarPanel(
-      textInput("species", h3("Species Input"), value = ""),
-      sliderInput(inputId = "radius", "Search Radius(km)",min = 1, max = 50, value = 25)
+# ui <- fluidPage(
+#   setBackgroundColor(color ="darkgrey"),
+#   
+#   fluidRow(
+#     # left sidebar for inputting information
+#     sidebarPanel(
+#       textInput("species", h3("Species Input"), value = ""),
+#       sliderInput(inputId = "radius", "Search Radius(km)",min = 1, max = 50, value = 25)
+# 
+#     ),
+#     # middle sidebar for showing species information
+#     sidebarPanel(
+#       htmlOutput("SpeciesInfoOut"),
+#       tags$head(tags$style("#SpeciesInfoOut{color: black; font-size: 18px"))
+#     ),
+#     # right sidebar for showing similar species
+#     sidebarPanel(
+#       h3("Similar Species"),
+#       uiOutput("SimilarSpeciesOut")
+#     )
+# 
+#   ),
+#   fluidRow(
+#     sidebarPanel(
+#       h3("API Key"),
+#       uiOutput("APILink"),
+#       textInput("apikey", "", value = "vmgu1o6c6ihc")
+#     )
+#   )
+# )
 
-    ),
-    # middle sidebar for showing species information
-    sidebarPanel(
-      htmlOutput("SpeciesInfoOut"),
-      tags$head(tags$style("#SpeciesInfoOut{color: black; font-size: 18px"))
-    ),
-    # right sidebar for showing similar species
-    sidebarPanel(
-      h3("Similar Species"),
-      uiOutput("SimilarSpeciesOut")
+colorScheme <- "blue"
+ui <- dashboardPage(
+  skin = colorScheme,
+  dashboardHeader(title = "Vultr"),
+  dashboardSidebar(
+    sidebarMenu(
+      sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Species"),
+      menuItem("Species Search", tabName = "1", icon = icon("magnifying-glass", lib = "font-awesome")),
+      menuItem("Settings", tabName = "2", icon = icon("gear", lib = "font-awesome"))
     )
-
   ),
-  fluidRow(
-    sidebarPanel(
-      h3("API Key"),
-      uiOutput("APILink"),
-      textInput("apikey", "", value = "vmgu1o6c6ihc")
+  dashboardBody(
+    tabItems(
+      #Species Search tab
+      tabItem(
+        tabName = "1",
+        
+        fluidRow(
+
+          
+          # middle sidebar for showing species information
+          box(
+            title = "Species Info",
+            background = "black",
+            collapsible = TRUE,
+            solidHeader = TRUE,
+            status = "primary",
+            
+            htmlOutput("SpeciesInfoOut")
+          ),
+          
+          # right sidebar for showing similar species
+          box(
+            
+            title = "Similar Species",
+            background = "black",
+            collapsible = TRUE,
+            solidHeader = TRUE,
+            status = "primary",
+            
+            uiOutput("SimilarSpeciesOut")
+          )
+          
+          
+        )
+      
+      ),
+      
+      
+      tabItem(
+        tabName = "2",
+        box(
+          title = "API key",
+          background = "black",
+          collapsible = TRUE,
+          solidHeader = TRUE,
+          status = "primary",
+          
+          
+          uiOutput("APILink"),
+          textInput("apikey", "", value = "vmgu1o6c6ihc")
+        ),
+        
+        box(
+          title = "Search Radius(km)",
+          background = "black",
+          collapsible = TRUE,
+          solidHeader = TRUE,
+          status = "primary",
+          
+          sliderInput(inputId = "radius", label = "", min = 1, max = 50, value = 25)
+        ),
+        
+        box(
+          title = "Style",
+          background = "black",
+          collapsible = TRUE,
+          solidHeader = TRUE,
+          status = "primary",
+          
+          drop
+        )
+      )
+      
     )
+    
   )
+    
 )
+  
 server <- function(input, output)
 {
 
@@ -122,18 +213,22 @@ server <- function(input, output)
  }) 
   
   # output for species info
- prevBird <- ""
+  searchButtonPressed <- FALSE
+  observeEvent(input$speciesSearchButton,{
+    searchButtonPressed <- TRUE
+    print(searchButtonPressed)
+
+  })
   output$SpeciesInfoOut <- renderText({ 
     
     inputText <- input$species
-    
+    print(inputText)
     searchRad <- input$radius
     key <- input$apikey
     index <- searchSpeciesTibble(2,inputText)[[1]]
-    print(prevBird)
-    if (index != FALSE & inputText != prevBird)
+    print(searchButtonPressed)
+    if (index != FALSE)
     {
-      prevBird <- inputText
       speciesCode <- speciesTibble[index, 3]
       cSightingData <- findClosestSighting(speciesCode, searchRad, key)
       HTML(paste(sep = " ",
@@ -143,6 +238,7 @@ server <- function(input, output)
                  "<br/>Closest Sighting Distance (km):", cSightingData[1],
                  "<br/>Location of Closest Sighting:", cSightingData[2],
                  "<br/>Number of Sightings in", searchRad,"km:", cSightingData[3]))
+
     }
     else
     {
@@ -182,6 +278,7 @@ server <- function(input, output)
           )
       
       }
+
     }
     
   })
