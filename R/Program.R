@@ -13,10 +13,10 @@ library("geosphere")
 library("shinyjs")
 library("fresh")
 library("leaflet")
+library("dplyr")
 
 currentDate <- Sys.Date()
 
-print(quakes[1:10,])
 # Vultr is a program that helps people identify birds
 APIkey <- "vmgu1o6c6ihc"
 
@@ -87,7 +87,6 @@ findClosestSighting <- function(speciesCode, radius, ApiKey, lati, long, daysBac
 {
     # polls the API and gets all of the closest sightings
     closestSightings <- nearestobs(species = speciesCode, lat = lati, lng = long, key = ApiKey, dist = radius, back = daysBack)
-    print(closestSightings, n = 69)
     # makes sure one was found
     if (ncol(closestSightings) != 0){
         # calculates the distance
@@ -107,8 +106,6 @@ findClosestSighting <- function(speciesCode, radius, ApiKey, lati, long, daysBac
                 indexOfClosestSighting <- i
             }
             lngVec <- append(lngVec, lng)
-            print(lat)
-            print("---------------------------")
             latVec <- append(latVec, lat)
         }
         
@@ -270,33 +267,36 @@ ui <- function()
                                 selectInput("country","Country", countryList),
                                 selectInput("state", "State", c()),
                                 selectInput("county", "County", c()),
-                                switchInput("specificlocationtoggle", "Enable Specific Location", size = 'mini', onStatus = "danger"),
-                                #switchInput color while on
-                                tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-danger,
-                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-danger {
-                                        background: #004475;
-                                        color: white;
-                                        }'))),
-                                
-                                #switchInput color while off
-                                tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-info,
-                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-info {
-                                        background: #2e2e2e;
-                                        color: black;
-                                        }'))),
                                 box(
-                                    id = "specificLocalBox",
-                                    background = "black",
                                     width = 12,
+                                    background = "black",
                                     collapsible = TRUE,
-                                    closable = TRUE,
                                     solidHeader = TRUE,
                                     status = "primary",
-                                    title = "Specific Location",
-                                    numericInput("latiudeinput", "Latiude", value = 0, min = -90, max = 90),
-                                    numericInput("longitudeinput", "Longitude", value = 0, min = -180, max = 180)
+                                    title = switchInput("specificlocationtoggle", "Specific Location", size = 'mini', onStatus = "danger", onLabel = "YES", offLabel = "NO"),
+                                    #switchInput color while on
+                                    tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-danger,
+                                           .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-danger {
+                                            background: #004475;
+                                            color: white;
+                                            }'))),
+                                    box(
+                                        id = "specificLocalBox",
+                                        background = "black",
+                                        width = 12,
+                                        collapsible = TRUE,
+                                        closable = TRUE,
+                                        solidHeader = TRUE,
+                                        status = "primary",
+                                        title = "Specific Location",
+                                        numericInput("latiudeinput", "Latitude", value = 0, min = -90, max = 90, step = .000001),
+                                        numericInput("longitudeinput", "Longitude", value = 0, min = -180, max = 180, step = .0000001)
+                                        # end of specific location input box
+                                    )
                                 # end of specific location box
                                 )
+                                
+                                
                             # end of main location box
                             )
                         # end of column
@@ -355,6 +355,15 @@ ui <- function()
                         width = 12,
                         status = "primary",
                         selectInput("speciesListArea", "", c("County", "State", "Country")),
+                        switchInput("speciesDateSwitch", "Time Range", size = 'mini', onStatus = "danger"),
+                        #switchInput color while on
+                        tags$head(tags$style(HTML('.bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-danger,
+                                       .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-danger {
+                                        background: #004475;
+                                        color: white;
+                                        }'))),
+                        
+                        
                         htmlOutput(outputId = "speciesList")
                     )
                 # end of species tab
@@ -389,8 +398,18 @@ ui <- function()
 
 server <- function(input, output, session)
 {
+    observeEvent(input$speciesMap_click, {
+        clickInfo <- input$speciesMap_click
+        lat <- clickInfo$lat
+        lng <- clickInfo$lng
+        print(lat)
+        print(lng)
+        updateSelectInput(inputId = "specificlocationtoggle", selected = TRUE)
+        updateNumericInput(inputId = "latiudeinput", value = lat)
+        updateNumericInput(inputId = "longitudeinput", value = lng)
 
-    
+    })
+
     # code to show/hide the specific location box
     observeEvent(input$specificlocationtoggle, {
         selectedState <- input$specificlocationtoggle # gets state of setting
@@ -403,6 +422,16 @@ server <- function(input, output, session)
             updateBox("specificLocalBox", action = "restore") # shows box
         }
     })
+    
+    observeEvent(input$specificLocalBox$visible, {
+        boxState <- input$specificLocalBox$visible
+        selectedState <- input$specificlocationtoggle # gets state of setting
+        if (!boxState & selectedState)
+        {
+            updateBox("specificLocalBox", action = "restore") # shows box
+        }
+    })
+    
     
     # code to render a hyperlink to the API key website
     output$APILink <- renderUI({
@@ -571,10 +600,12 @@ server <- function(input, output, session)
     # end of similar species title code
     })
 
+    
+    
     # reactive search stuff goes here:
-    observeEvent(input$speciesSearchButton, {
+    observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton, input$speciesMap_click), {
         shinyalert("Searching...", "It will take a second.") # searching pop-up
-        
+        print(input$speciesMap_click)
         locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
         
         speciesInput <- input$species # species input
@@ -771,7 +802,6 @@ server <- function(input, output, session)
                 sightingLocationsList <- append(sightingLocationsList, sightingLocationsTibble[[i,1]])
             }
             
-            print(sightingLocationsList)
             HTML(
                 paste(
                     sightingLocationsList,
@@ -804,19 +834,19 @@ server <- function(input, output, session)
                 typeVector <- append(typeVector, "sighting")
             }
             dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
-            print(dataFrame)
             icons <- awesomeIconList(
-                user = userIcon <- makeAwesomeIcon(
+                user = makeAwesomeIcon(
                     icon = "user",
                     iconColor = "black",
                     library = "fa",
-                    markerColor = "blue"
+                    markerColor = "darkblue"
                 ),
-                sighting = userIcon <- makeAwesomeIcon(
+                sighting = makeAwesomeIcon(
                     icon = "binoculars",
                     iconColor = "black",
                     library = "fa",
-                    markerColor = "blue"
+                    markerColor = "blue",
+                    
                 )
             )
             leaflet(data = dataFrame) %>%
