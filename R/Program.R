@@ -14,6 +14,7 @@ library("shinyjs")
 library("fresh")
 library("leaflet")
 library("dplyr")
+library("shinyBS")
 
 currentDate <- Sys.Date()
 
@@ -21,7 +22,7 @@ currentDate <- Sys.Date()
 APIkey <- "vmgu1o6c6ihc"
 
 # this is a tibble that has all the species in it
-speciesTibble <- rebird:::tax
+speciesTibble <- ebirdtaxonomy()
 # long and lat for finding nearby birds
 
 
@@ -39,6 +40,11 @@ ebirdCodeToCommon <- function(code)
 {
     commonName <- as.character(codeCommonNameDict[code])
     return(commonName)
+}
+
+CommonToEbirdCode <- function(name)
+{
+    
 }
 
 # function that searches the species tibble and returns the indexes of occurrences
@@ -140,9 +146,7 @@ existsInTibble <- function(tibbleIn, column, term)
 }
     
 
-js <- "Shiny.addCustomMessageHandler('change_skin', function(skin) {
-        document.body.className = skin;
-       });"
+
 
 colorScheme <- create_theme(
     adminlte_color(
@@ -252,6 +256,11 @@ ui <- function()
                 # settings tab
                 tabItem(
                     tabName = "settings",
+                    tags$head(tags$style("#modal1 .modal-header {background-color: #FFD8D8; text-align: center}")),
+                    bsModal("locationInModal", "", "InputMapOpen", size = "large", tags$span(
+                            leafletOutput("locationInMap"),
+                            style = "color: #121212")),
+                    
                     fluidRow(
                         column(
                             width = 6,
@@ -262,8 +271,6 @@ ui <- function()
                                 collapsible = TRUE,
                                 solidHeader = TRUE,
                                 status = "primary",
-                                
-                                
                                 selectInput("country","Country", countryList),
                                 selectInput("state", "State", c()),
                                 selectInput("county", "County", c()),
@@ -289,8 +296,11 @@ ui <- function()
                                         solidHeader = TRUE,
                                         status = "primary",
                                         title = "Specific Location",
+                                        actionBttn("InputMapOpen", "Set Location With Map", icon = icon("map"), size = "sm"),
                                         numericInput("latiudeinput", "Latitude", value = 0, min = -90, max = 90, step = .000001),
                                         numericInput("longitudeinput", "Longitude", value = 0, min = -180, max = 180, step = .0000001)
+                                        
+                                        
                                         # end of specific location input box
                                     )
                                 # end of specific location box
@@ -398,15 +408,35 @@ ui <- function()
 
 server <- function(input, output, session)
 {
-    observeEvent(input$speciesMap_click, {
-        clickInfo <- input$speciesMap_click
+    
+    output$locationInMap <- renderLeaflet({
+        leaflet() %>%
+            addProviderTiles(providers$Esri.WorldImagery)%>%
+            addProviderTiles(providers$Stamen.TonerLabels)
+    })
+    observeEvent(input$locationInMap_click, {
+        clickInfo <- input$locationInMap_click
         lat <- clickInfo$lat
         lng <- clickInfo$lng
         print(lat)
         print(lng)
+        while (lng < -180)
+        {
+            lng <- lng + 360
+            print("-----")
+            print(lng)
+        }
+        while (lng > 180)
+        {
+            lng <- lng - 360
+            print("++++++++")
+            print(lng)
+        }
         updateSelectInput(inputId = "specificlocationtoggle", selected = TRUE)
         updateNumericInput(inputId = "latiudeinput", value = lat)
         updateNumericInput(inputId = "longitudeinput", value = lng)
+        toggleModal(session = session, "locationInModal")
+        
 
     })
 
@@ -603,9 +633,8 @@ server <- function(input, output, session)
     
     
     # reactive search stuff goes here:
-    observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton, input$speciesMap_click), {
+    observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
         shinyalert("Searching...", "It will take a second.") # searching pop-up
-        print(input$speciesMap_click)
         locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
         
         speciesInput <- input$species # species input
