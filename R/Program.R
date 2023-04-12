@@ -18,6 +18,7 @@ library("shinyBS")
 
 currentDate <- Sys.Date()
 
+print(as.Date(Sys.Date())-13)
 # Vultr is a program that helps people identify birds
 APIkey <- "vmgu1o6c6ihc"
 
@@ -130,7 +131,7 @@ findClosestSighting <- function(speciesCode, radius, ApiKey, lati, long, daysBac
         
         # returns the distance of the closest sighting, the location of the
         # closest sighting, and the number of sightings
-        return(list(distanceOfclosestSighting, closestSightings[indexOfClosestSighting, 5], nrow(closestSightings), closestSightings[1:nrow(closestSightings), 5]
+        return(list(distanceOfclosestSighting, closestSightings[[indexOfClosestSighting, 5]], nrow(closestSightings), closestSightings[1:nrow(closestSightings), 5]
                     ,lngVec, latVec))
     }
     # returns "Outside of Search Distance" if no occurrences were found
@@ -163,9 +164,9 @@ existsInTibble <- function(tibbleIn, column, term)
 
 
 # ui script
-source("ui/uiScript.R", local = TRUE)
+source("Ui/Ui_Shell.R", local = TRUE)
 # server script
-source("server/serverScript.R", local = TRUE)
+source("Server/Server_Shell.R", local = TRUE)
 
 # creates the app
 shinyApp(ui = ui, server = server)
