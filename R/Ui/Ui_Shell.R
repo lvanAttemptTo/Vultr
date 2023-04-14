@@ -21,6 +21,7 @@ source("Ui/Ui_SpeciesInfo.R", local = TRUE)
 source("Ui/Ui_Settings.R", local = TRUE)
 source("Ui/Ui_SpeciesList.R", local = TRUE)
 source("Ui/Ui_SpeciesMap.R", local = TRUE)
+source("Ui/Ui_Quiz.R", local = TRUE)
 ui <- function()
 {
     dashboardPage(
@@ -36,7 +37,8 @@ ui <- function()
                 menuItem("Species Information", tabName = "speciesSearch", icon = icon("magnifying-glass", lib = "font-awesome")),
                 menuItem("Settings", tabName = "settings", icon = icon("gear", lib = "font-awesome")),
                 menuItem("Species", tabName = "species", icon = icon("feather", lib = "font-awesome")),
-                menuItem("Map", tabName = "map", icon = icon("location-dot", lib = "font-awesome"))
+                menuItem("Map", tabName = "map", icon = icon("location-dot", lib = "font-awesome")),
+                menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
                 
                 # end of sidebar menu
             )
@@ -57,7 +59,9 @@ ui <- function()
                 SpeciesListTab,
                 
                 # tab for map of sighting locations
-                SpeciesMapTab
+                SpeciesMapTab,
+                
+                QuizTab
                 
                 
             # end of tab items
