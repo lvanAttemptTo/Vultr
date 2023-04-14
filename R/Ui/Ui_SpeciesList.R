@@ -1,4 +1,4 @@
-tabItem(
+SpeciesListTab <- tabItem(
 	tabName = "species", # tab ID
 	# box for the species list output
 	box(

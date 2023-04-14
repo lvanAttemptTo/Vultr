@@ -1,4 +1,4 @@
-tabItem(
+SpeciesInfoTab <- tabItem(
 	tabName = "speciesSearch", # tab ID
 	
 	# fluid row for boxes

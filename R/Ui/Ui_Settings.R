@@ -1,4 +1,4 @@
-tabItem(
+SettingsTab <- tabItem(
 	tabName = "settings", # tab ID
 	# modal for setting specific location
 	bsModal("locationInModal", "", "InputMapOpen", size = "large", tags$span(

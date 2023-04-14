@@ -6,7 +6,7 @@ output$SimilarSpeciesTitle <- renderUI({
 	if(county != "None") # if there is a county
 	{
 		# set location to the county
-		locationName <- county
+	    locationName <- paste(county, "", sep = "")
 	}
 	else if(state != "") # if there is a state
 	{
@@ -37,7 +37,7 @@ output$regionSightingsTitle <- renderUI({
 	if(county != "None" & area == "County") # if there is a county and it is selected
 	{
 		# location is the county
-		locationName <- county
+		locationName <- paste(county, "", sep = "")
 	}
 	else if(state != "" & area == "State") # if the state is set and selected
 	{

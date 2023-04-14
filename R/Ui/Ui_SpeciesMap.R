@@ -1,4 +1,4 @@
-tabItem(
+SpeciesMapTab <- tabItem(
 	tabName = "map", # tab ID
 	# box for the map
 	box(
