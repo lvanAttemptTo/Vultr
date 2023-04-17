@@ -28,8 +28,33 @@ observeEvent(input$locationInMap_click, {
     updateNumericInput(inputId = "longitudeinput", value = lng) # numeric inut for lng
     toggleModal(session = session, "locationInModal") # hides the modal
     
+    country1 <- map.where(x = lng, y = lat)
+    print(country1)
+    pos <- which(iso3166 == country1, arr.ind = TRUE)[1,1]
+    print(pos)
+    country2 <- iso3166[pos, "ISOname"]
+    print(country2)
     
+    updateSelectInput(
+        inputId = "country",
+        label = "Country",
+        choices = countryList,
+        selected = country2
+    )
+    updateSelectInput(
+        inputId = "state",
+        label = "State",
+        choices = c("None"),
+        selected = "None"
+    )
+    updateSelectInput(
+        inputId = "county",
+        label = "County",
+        choices = c("None"),
+        selected = "None"
+    )
 })
+
 
 # code to show/hide the specific location box
 observeEvent(input$specificlocationtoggle, {
@@ -78,19 +103,40 @@ observeEvent(input$country, {
     if (nrow(statesTibble) > 0)
     {
         # loops through every row of the tibble and adds the full name to "statesList"
-        for (i in 1:nrow(statesTibble))
-        {
-            # appends the full name to the list
-            statesList <- append(statesList, statesTibble[[i, 2]])
-        }
+        statesList <- as.list(statesTibble$name)
+        
         # updates the SelectInput for the state with the list of states
+        
+        if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+        {
+            state <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "state"))
+            print(state)
+            updateSelectInput(
+                inputId = "state",
+                label = "State",
+                choices = statesList,
+                selected = state
+            )
+        }
+        else 
+        {
+            updateSelectInput(
+                inputId = "state",
+                label = "State",
+                choices = statesList,
+                selected = NULL
+            )
+        }
+        # end of tibble check
+    }
+    else
+    {
         updateSelectInput(
             inputId = "state",
             label = "State",
-            choices = statesList,
-            selected = NULL
+            choices = c("None"),
+            selected = "None"
         )
-        # end of tibble check
     }
     # end of observe event for country selection
 })
@@ -98,7 +144,7 @@ observeEvent(input$country, {
 
 # code that updates when a new state is selected
 # it is used to generate the list of counties or set them to "None"
-observeEvent(input$state, {
+observeEvent(input$state, ignoreInit = TRUE, {
     key <- input$apikey # key for ebird API
     state <- input$state # full name of the state
     country <- input$country # full name of the country
@@ -107,19 +153,14 @@ observeEvent(input$state, {
     # tibble that rebird returns that is 2 x n (state code, full name)
     subregion1Tibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
     # checks if state is not an empty string
-    if (state != "")
+    if (state != "None")
     {
         
         stateCode <- "" # state code
         # goes through the subregion1 tibble to find what the ebird code is
         # for the state
-        for (i in 1:nrow(subregion1Tibble))
-        {
-            if (subregion1Tibble[[i, 2]] == state)
-            {
-                stateCode <- subregion1Tibble[[i, 1]]
-            }
-        }
+        # this block of code finds the ebird code for the state
+        stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
         
         # tibble the rebird that contains the ebird code for the county and 
         # full names of the counties 
@@ -129,17 +170,31 @@ observeEvent(input$state, {
         if (nrow(countyTibble) > 0)
         {
             # goes through all the counties and add the full name to the list
-            for (i in 1:nrow(countyTibble))
-            {
-                countyList <- append(countyList, countyTibble[[i, 2]])
-            }
+            countyList <- as.list(countyTibble$name)
+            
             # updates the selectInput for county with the list of counties
-            updateSelectInput(
-                inputId = "county",
-                label = "County",
-                choices = countyList,
-                selected = NULL
-            )
+            if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+            {
+                county <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "county"))
+                county <- str_split(county, ",")[[1]]
+                print(county)
+                
+                updateSelectInput(
+                    inputId = "county",
+                    label = "County",
+                    choices = countyList,
+                    selected = county
+                )
+            }
+            else
+            {
+                updateSelectInput(
+                    inputId = "county",
+                    label = "County",
+                    choices = countyList,
+                    selected = NULL
+                )
+            }
             # end of county check
         }
         else # if there are no counties set the choices to "None"

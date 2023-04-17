@@ -15,10 +15,13 @@ library("fresh")
 library("leaflet")
 library("dplyr")
 library("shinyBS")
-
+library("maps")
 currentDate <- Sys.Date()
 
-print(as.Date(Sys.Date())-13)
+print(iso3166, max = 10000)
+
+print(countrycode(map.where(x = -122, y = 45), origin = "iso3c", destination = "country.name"))
+
 # Vultr is a program that helps people identify birds
 APIkey <- "vmgu1o6c6ihc"
 
@@ -26,8 +29,17 @@ APIkey <- "vmgu1o6c6ihc"
 speciesTibble <- ebirdtaxonomy()
 # long and lat for finding nearby birds
 
+searchTibble <- function(inTibble, term)
+{
+    df <- as.data.frame(inTibble)
+    occurences <- which(df == term, arr.ind = TRUE)
+    return(occurences)
+}
 
-countryList <- list_countries(data_source = 2020)
+print(as.integer(searchTibble(speciesTibble, "House Sparrow")[1]))
+
+countryList <- iso3166$ISOname
+
 
 codeCommonNameDict <- c()
 commonNameIndexDict <- c()
@@ -157,8 +169,6 @@ existsInTibble <- function(tibbleIn, column, term)
     }
     return(found)
 }
-
-
 
 
 

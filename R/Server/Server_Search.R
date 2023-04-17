@@ -17,16 +17,10 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
     # tibble that contains the codes for the states and the full names
     subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
     
-    # this block of code finds the ebird codes for the state and county
-    for (i in 1:nrow(subregion1Tibble))
+
+    if(state != "None")
     {
-        # checks if the full name of the input state is the same one as the ith row of the tibble
-        if (subregion1Tibble[[i, 2]] == state)
-        {
-            # if the input state full name matches the full name from the tibble
-            # set the code to the corresponding one in the tibble
-            stateCode <- subregion1Tibble[[i, 1]]
-        }
+        stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
     }
     # tibble that has all the codes and names for counties in the state
     # but it will be 0x0 if there are none
@@ -39,10 +33,7 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
         for (i in 1:nrow(subregion2Tibble))
         {
             
-            if (subregion2Tibble[[i, 2]] == county)
-            {
-                countyCode <- subregion2Tibble[[i, 1]]
-            }
+            countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
         }
         
         if (!locationSet)  # if the user has not set a specific location
@@ -129,7 +120,7 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             # gets the indices for the birds that are in the family
             birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
             # checks to make sure that it worked
-            if(length(birdFamilyIndices ) != 0)
+            if(length(birdFamilyIndices) != 0)
             {
                 # list that will contain all of the common names for the birds in the same family
                 birdFamilyName <- list() 
@@ -150,7 +141,7 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
                 # list for the the codes of the birds in the family
                 familyCodesList <- list()
                 # adds the code for each bird to the list of codes
-                for(i in 1:length(birdFamilyIndices ))
+                for(i in 1:length(birdFamilyIndices))
                 { 
                     birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
                     familyCodesList <- append(familyCodesList, birdCode)

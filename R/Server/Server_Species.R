@@ -13,12 +13,9 @@ output$speciesList <- renderUI({
 	subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
 	
 	# this block of code finds the ebird code for the state
-	for (i in 1:nrow(subregion1Tibble))
+	if (state != "None")
 	{
-		if (subregion1Tibble[[i, 2]] == state)
-		{
-			stateCode <- subregion1Tibble[[i, 1]]
-		}
+        stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
 	}
 	# tibble that contains all the county codes and full names for the state
 	subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
@@ -27,15 +24,8 @@ output$speciesList <- renderUI({
 	{
 		# if there were counties it goes through and finds the county code
 		# for the given input
-		for (i in 1:nrow(subregion2Tibble))
-		{
-			
-			if (subregion2Tibble[[i, 2]] == county)
-			{
-				countyCode <- subregion2Tibble[[i, 1]]
-			}
-		}
-		
+		countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+
 	}
 	
 	
