@@ -8,6 +8,7 @@ Vultr Uses Two external APIs [ebird](https://ebird.org/home), and  [Flickr](http
 ## Functionality
 
 ### Species Information
+
 The _Species Information_ tab is for the general information on the species. This includes:
 * Species Info
   - Common Name
@@ -20,12 +21,14 @@ The _Species Information_ tab is for the general information on the species. Thi
 * Similar Species In Area
 
 ### Species List
+
 The _Species List_ tab shows the birds sighted in the desired area either in the past x days or ever. The options for area are:
 * County
 * State
 * Country
 
 ### Sighting Map
+
 The _Sighting Map_ tab contains a map of sightings of the searched bird in the past x days from the set radius.
 ### Quiz
 
