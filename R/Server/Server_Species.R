@@ -28,27 +28,26 @@ output$speciesList <- renderUI({
 
 	}
 	
-	
-	
+
 	selection <- input$speciesListArea # selection for the area(County, State, Country)
 	
 	if (input$speciesDateSwitch == FALSE)
 	{
-	    speciesCodeList <- c()
+	    speciesCodeList <<- c()
 		if(county != "None" & selection == "County") # if there is a county and it is selected
 		{
 			# set the code list to the species in the county
-			speciesCodeList <- ebirdregionspecies(countyCode, key = key)[[1]]
+			speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
 		}
 		else if(stateCode != "" & selection == "State") # if there is a state and it is selected
 		{
 			# set the code list to the species in the state
-			speciesCodeList <- ebirdregionspecies(stateCode, key = key)[[1]]
+			speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
 		}
 		else if(selection == "Country") # if the selection is country
 		{
 			# set the code list to the species in the country
-			speciesCodeList <- ebirdregionspecies(countryCode, key = key)[[1]]
+			speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
 		}
 	    
 	    # converts all of the codes to common names
@@ -56,15 +55,15 @@ output$speciesList <- renderUI({
 	    {
     	    for (i in 1:length(speciesCodeList))
     	    {
-    	        speciesCodeList[i] <- ebirdCodeToCommon(speciesCodeList[[i]])
+    	        speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
     	    }
 	    }
-	    speciesCodeList <- sort(speciesCodeList)
+	    speciesCodeList <<- sort(speciesCodeList)
 	}
 	else
 	{
 	    daysBack <- input$daysback
-	    speciesCodeList <- list()
+	    speciesCodeList <<- list()
 
 	    if(county != "None" & selection == "County") # if there is a county and it is selected
 	    {
@@ -74,7 +73,7 @@ output$speciesList <- renderUI({
 	            searchDate <- as.Date(currentDate) - i
 	            responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
 	            dateList <- as.list(responseTibble$comName)
-	            speciesCodeList <- union(speciesCodeList, dateList)
+	            speciesCodeList <<- union(speciesCodeList, dateList)
 	        }
 	    }
 	    else if(stateCode != "" & selection == "State") # if there is a state and it is selected
@@ -84,7 +83,7 @@ output$speciesList <- renderUI({
 	            searchDate <- as.Date(currentDate) - i
 	            responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
 	            dateList <- as.list(responseTibble$comName)
-	            speciesCodeList <- union(speciesCodeList, dateList)
+	            speciesCodeList <<- union(speciesCodeList, dateList)
 	        }
 	    }
 	    else if(selection == "Country") # if the selection is country
@@ -94,11 +93,11 @@ output$speciesList <- renderUI({
 	            searchDate <- as.Date(currentDate) - i
 	            responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
 	            dateList <- as.list(responseTibble$comName)
-	            speciesCodeList <- union(speciesCodeList, dateList)
+	            speciesCodeList <<- union(speciesCodeList, dateList)
 	        }
 	    }
 	    
-	    speciesCodeList <- sort(unlist(speciesCodeList))
+	    speciesCodeList <<- sort(unlist(speciesCodeList))
 
 	}
 	

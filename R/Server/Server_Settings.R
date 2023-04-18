@@ -30,29 +30,21 @@ observeEvent(input$locationInMap_click, {
     
     country1 <- map.where(x = lng, y = lat)
     print(country1)
+    if (grepl(":",country1))
+    {
+        country1 <- unlist(strsplit(country1,":"))[1]
+    }
+    print(country1)
     pos <- which(iso3166 == country1, arr.ind = TRUE)[1,1]
-    print(pos)
     country2 <- iso3166[pos, "ISOname"]
-    print(country2)
-    
+
     updateSelectInput(
         inputId = "country",
         label = "Country",
         choices = countryList,
         selected = country2
     )
-    updateSelectInput(
-        inputId = "state",
-        label = "State",
-        choices = c("None"),
-        selected = "None"
-    )
-    updateSelectInput(
-        inputId = "county",
-        label = "County",
-        choices = c("None"),
-        selected = "None"
-    )
+    
 })
 
 
@@ -90,7 +82,7 @@ output$APILink <- renderUI({
 # code that updates when a new country is selected 
 # it is used to set the list of states in the country and add them to the
 # drop down menu
-observeEvent(input$country, {
+observeEvent(c(input$country, input$longitudeinput), {
     key <- input$apikey # key for the ebird APi
     country <- input$country # full name of country selected
     # 2 char code for the country that ebird uses to look stuff up
@@ -110,6 +102,19 @@ observeEvent(input$country, {
         if (countryCode == "US" & input$specificlocationtoggle == TRUE)
         {
             state <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "state"))
+            print(state)
+            if (grepl(":", state))
+                print(state)
+                {
+                if (unlist(strsplit(state, ":"))[1] %in% statesList)
+                {
+                    state <- unlist(strsplit(state, ":"))[1]
+                }
+                else
+                {
+                    state <- unlist(strsplit(state, ":"))[2]
+                }
+            }
             print(state)
             updateSelectInput(
                 inputId = "state",
@@ -176,9 +181,9 @@ observeEvent(input$state, ignoreInit = TRUE, {
             if (countryCode == "US" & input$specificlocationtoggle == TRUE)
             {
                 county <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "county"))
-                county <- str_split(county, ",")[[1]]
                 print(county)
-                
+                county <- unlist(strsplit(county, ","))[1]
+
                 updateSelectInput(
                     inputId = "county",
                     label = "County",

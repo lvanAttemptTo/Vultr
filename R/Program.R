@@ -16,11 +16,14 @@ library("leaflet")
 library("dplyr")
 library("shinyBS")
 library("maps")
+library("FlickrAPI")
+
+print(unlist(strsplit("USA:Hawaii",":"))[2])
+
+testPhoto <- getPhotoSearch(tags = c("bald eagle"), per_page = 1)
 currentDate <- Sys.Date()
 
-print(iso3166, max = 10000)
-
-print(countrycode(map.where(x = -122, y = 45), origin = "iso3c", destination = "country.name"))
+speciesCodeList <- list()
 
 # Vultr is a program that helps people identify birds
 APIkey <- "vmgu1o6c6ihc"
@@ -176,6 +179,10 @@ existsInTibble <- function(tibbleIn, column, term)
 # ui script
 source("Ui/Ui_Shell.R", local = TRUE)
 # server script
+
+correct <- 0
+incorrect <- 0
+quizSubmit <- 0
 source("Server/Server_Shell.R", local = TRUE)
 
 # creates the app

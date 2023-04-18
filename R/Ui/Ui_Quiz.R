@@ -13,8 +13,13 @@ QuizTab <- tabItem(
                 solidHeader = TRUE,
                 status = "primary",
                 # image of bird
-                imageOutput("quizImage")
-
+                htmlOutput("quizImage"),
+                textOutput("quizScore"),
+                radioButtons("guess", "", choices = c(1,2,3,4,5)),
+                
+                actionButton("quizSubmit", label = "Submit"),
+                actionButton("resetQuiz", label = "Reset")
+                
             )
         )
     )

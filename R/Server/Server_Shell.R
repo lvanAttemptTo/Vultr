@@ -12,4 +12,7 @@ server <- function(input, output, session)
 
 	# species tab
 	source("Server/Server_Species.R", local = TRUE)
+    
+    # quiz tab
+    source("Server/Server_Quiz.R", local = TRUE)
 }
