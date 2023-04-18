@@ -32,6 +32,7 @@ ui <- function()
         
         sidebar = dashboardSidebar(
             sidebarMenu(
+                id = "tabs",
                 sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search Species"),
                 #menuItem("Home", tabName = "home", icon = icon("house", lib = "font-awesome")),
                 menuItem("Species Information", tabName = "speciesSearch", icon = icon("magnifying-glass", lib = "font-awesome")),

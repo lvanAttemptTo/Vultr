@@ -182,7 +182,7 @@ observeEvent(input$state, ignoreInit = TRUE, {
             {
                 county <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "county"))
                 print(county)
-                county <- unlist(strsplit(county, ","))[1]
+                county <- unlist(strsplit(county, ","))[2]
 
                 updateSelectInput(
                     inputId = "county",

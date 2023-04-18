@@ -53,8 +53,9 @@ observeEvent(input$quizSubmit,
             }
         }
         updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-        photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance")
+        photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 50, sort = "relevance", api_key = flickerAPIkey)
         photoIndex <- round(runif(min = 1, max = 3, n = 1))
+        
         serverID <- photo$server[photoIndex]
         ID <- photo$id[photoIndex]
         secret <- photo$secret[photoIndex]
@@ -74,21 +75,26 @@ observeEvent(input$quizSubmit,
             ".",
             format
                    )
-        cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url")$content
+        cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
         print(cite)
-        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all")$owner$realname
+        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
         print(author)
+        if (author == "")
+        {
+            author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
+        }
         c('<img src="', src, '">', '<br/>
           <p>Photo property of 
           <a href="', cite, '" target="_blank">' ,author, '</a>
           and API services via
-          <a href="flickr.com" target="_blank">Flickr</a>
+          <a href="https://www.flickr.com" target="_blank">Flickr</a>
           </p>')
     })
 })
 
-observeEvent(input$resetQuiz,
+observeEvent(c(input$resetQuiz),
 {
+    print(input$tabs)
     correct <<- 0
     incorrect <<- 0
     output$quizScore <- renderText({
@@ -116,8 +122,9 @@ observeEvent(input$resetQuiz,
             }
         }
         updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-        photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance")
+        photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey)
         photoIndex <- round(runif(min = 1, max = 3, n = 1))
+        
         serverID <- photo$server[photoIndex]
         ID <- photo$id[photoIndex]
         secret <- photo$secret[photoIndex]
@@ -137,10 +144,15 @@ observeEvent(input$resetQuiz,
             ".",
             format
         )
-        cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url")$content
+        
+        cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
         print(cite)
-        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all")$owner$realname
+        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
         print(author)
+        if (author == "")
+        {
+            author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
+        }
         c('<img src="', src, '">', '<br/>
           <p>Photo property of 
           <a href="', cite, '" target="_blank">' ,author, '</a>

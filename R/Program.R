@@ -1,3 +1,14 @@
+# installs packages that are not installed
+
+# list of required packages
+packageList <- c("tidyverse", "rebird", "shiny", "shinyWidgets", "shinydashboard",
+                 "shinydashboardPlus", "auk", "dynutils", "shinyalert", "contactdata",
+                 "countrycode", "geosphere", "shinyjs", "fresh", "leaflet", "dplyr",
+                 "shinyBS", "maps", "flickrAPI")
+newPackages <- packageList[!(packageList %in% installed.packages()[,"Package"])]
+
+if(length(newPackages)) install.packages(newPackages)
+
 library("tidyverse")
 library("rebird")
 library("shiny")
@@ -18,9 +29,10 @@ library("shinyBS")
 library("maps")
 library("FlickrAPI")
 
+
+flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
 print(unlist(strsplit("USA:Hawaii",":"))[2])
 
-testPhoto <- getPhotoSearch(tags = c("bald eagle"), per_page = 1)
 currentDate <- Sys.Date()
 
 speciesCodeList <- list()
