@@ -9,15 +9,15 @@ Vultr Uses Two external APIs [ebird](https://ebird.org/home), and  [Flickr](http
 
 ### Species Information
 The _Species Information_ tab is a tab for the general information on the species. This includes:
--Species Info
+*Species Info
   -Common Name
   -Scientific Name
   -Family
   -Distance of Closest Sighting
   -Location of Closest Sighting
   -Number of Sightings In x Range In The Past y Days
--Sighting Locations
--Similar Species In Area
+*Sighting Locations
+*Similar Species In Area
 ### Species List
 
 ### Sighting Map
