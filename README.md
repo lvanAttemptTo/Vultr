@@ -20,15 +20,13 @@ The _Species Information_ tab is for the general information on the species. Thi
 * Sighting Locations
 * Similar Species In Area
 
-<details>
-  <summary>Species List</summary>
+### Species List
 
 The _Species List_ tab shows the birds sighted in the desired area either in the past x days or ever. The options for area are:
 * County
 * State
 * Country
 
- </details>
 ### Sighting Map
 
 The _Sighting Map_ tab contains a map of sightings of the searched bird in the past x days from the set radius.
