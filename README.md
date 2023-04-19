@@ -36,3 +36,5 @@ The _Sighting Map_ tab contains a map of sightings of the searched bird in the p
 The _Quiz_ tab has a quiz on the birds in the selected area. It uses the same list of birds as the _Species List_ tab. The quiz shows a picture and you have 5 options of birds. This is still in very early development and might be a bit buggy.
 
 ### Settings
+
+The _Settings_ tab allows you to set your location including: country, state/providence ect., and county (if offered). you can also set your specific location using a map which will be used in calculating the closest sightings. In the main 48 states of the US the map can be used to set the other location information as well. This is also where you supply the [ebird API key](https://ebird.org/api/keygen). You are also able to set the search radius for the species as well as how far back you want to lookup for the _Species List_, _Species Info_, and _Species Map_ tabs.
