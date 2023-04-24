@@ -1,8 +1,7 @@
-# reactive search stuff goes here:
 observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
     shinyalert("Searching...", "It will take a second.") # searching pop-up
     locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
-    
+    print(as.integer(input$speciesSearchButton))
     speciesInput <- input$species # species input
     searchRad <- input$radius # radius for the search
     amountDaysBack <- input$daysback # amount of days back the api will look back
@@ -17,24 +16,27 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
     # tibble that contains the codes for the states and the full names
     subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
     
-
+    
     if(state != "None")
     {
         stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+        subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+    }
+    else
+    {
+        subregion2Tibble <- tibble()
     }
     # tibble that has all the codes and names for counties in the state
     # but it will be 0x0 if there are none
-    subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+    
     # checks if there are counties for the given state
-    if (nrow(subregion2Tibble) != 0)
+    if (nrow(subregion2Tibble) > 0)
     {
         # if there were counties it goes through and finds the county code
         # for the given input
-        for (i in 1:nrow(subregion2Tibble))
-        {
-            
-            countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
-        }
+        
+        countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+        
         
         if (!locationSet)  # if the user has not set a specific location
         {
@@ -51,7 +53,7 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             longitude <- input$longitudeinput
         }
     }
-    else # if there is not a county
+    else if (state != "None")# if there is not a county
     {
         if (!locationSet)  # if the user has not set a specific location
         {
@@ -60,6 +62,23 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             # calculates the average latitude and longitude for the state
             latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
             longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
+        }
+        else # if the user has set a specific location
+        {
+            # sets the lat and long to the users input
+            latitude <- input$latiudeinput
+            longitude <- input$longitudeinput
+        }
+    }
+    else
+    {
+        if (!locationSet)  # if the user has not set a specific location
+        {
+            # gets the information on the state from rebird
+            countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
+            # calculates the average latitude and longitude for the state
+            latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
+            longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
         }
         else # if the user has set a specific location
         {
@@ -107,72 +126,79 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
     })
     
     # output for similar species
-    output$SimilarSpeciesOut <- renderUI({
-        speciesInput <- input$species # species input
-        searchRad <- input$radius # radius input
-        key <- input$apikey # key for ebird API
-        
-        # checks if the species is valid by checking if it exists in the species tibble
-        if(index != FALSE)
-        {
+    if (as.integer(input$speciesSearchButton) != searchVar)
+    {
+        output$SimilarSpeciesOut <- renderUI({
+            speciesInput <- input$species # species input
+            searchRad <- input$radius # radius input
+            key <- input$apikey # key for ebird API
             
-            speciesFamily <- speciesTibble[index, 10][[1,1]] # ebird family code
-            # gets the indices for the birds that are in the family
-            birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
-            # checks to make sure that it worked
-            if(length(birdFamilyIndices) != 0)
+            # checks if the species is valid by checking if it exists in the species tibble
+            if(index != FALSE)
             {
-                # list that will contain all of the common names for the birds in the same family
-                birdFamilyName <- list() 
                 
-                if (countyCode != "None") # checks if there is a county selected
+                speciesFamily <- speciesTibble[index, 10][[1,1]] # ebird family code
+                # gets the indices for the birds that are in the family
+                birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
+                # checks to make sure that it worked
+                if(length(birdFamilyIndices) != 0)
                 {
-                    # if there is get the a tibble with all the ebird codes of birds seen in that county
-                    birdsSightedTibble <- ebirdregionspecies(countyCode, key = key)
-                }
-                else # if a county is not selected use the state instead
-                {
-                    # get the a tibble with all the ebird codes of birds seen in that state
-                    birdsSightedTibble <- ebirdregionspecies(stateCode, key = key)
-                }
-                # list that contains all the codes for birds that have sighted in the region
-                birdsSightedList <- birdsSightedTibble[[1]]
-                
-                # list for the the codes of the birds in the family
-                familyCodesList <- list()
-                # adds the code for each bird to the list of codes
-                for(i in 1:length(birdFamilyIndices))
-                { 
-                    birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
-                    familyCodesList <- append(familyCodesList, birdCode)
+                    # list that will contain all of the common names for the birds in the same family
+                    birdFamilyName <- list() 
                     
-                    # end of for loop
+                    if (county != "None") # checks if there is a county selected
+                    {
+                        # if there is get the a tibble with all the ebird codes of birds seen in that county
+                        birdsSightedTibble <- ebirdregionspecies(countyCode, key = key)
+                    }
+                    else if (state != "None")# if a county is not selected use the state instead
+                    {
+                        # get the a tibble with all the ebird codes of birds seen in that state
+                        birdsSightedTibble <- ebirdregionspecies(stateCode, key = key)
+                    }
+                    else
+                    {
+                        birdsSightedTibble <- ebirdregionspecies(countryCode, key = key)
+                    }
+                    # list that contains all the codes for birds that have sighted in the region
+                    birdsSightedList <- birdsSightedTibble[[1]]
+                    
+                    # list for the the codes of the birds in the family
+                    familyCodesList <- list()
+                    # adds the code for each bird to the list of codes
+                    for(i in 1:length(birdFamilyIndices))
+                    { 
+                        birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
+                        familyCodesList <- append(familyCodesList, birdCode)
+                        
+                        # end of for loop
+                    }
+                    
+                    # makes a new list of ones that overlap
+                    intersectionCodes <- intersect(birdsSightedList, familyCodesList)
+                    # converts each code in the overlap to the common name
+                    for(i in 1:length(intersectionCodes))
+                    {
+                        birdFamilyName <- append(birdFamilyName, ebirdCodeToCommon(intersectionCodes[[i]]))
+                    }
+                    # HTML code for the body of the similar species box
+                    HTML(
+                        # converts the entire list to one string with a separator
+                        paste(
+                            birdFamilyName,
+                            collapse = "<br/>",
+                            sep = " "
+                            # end of paste
+                        )
+                        # end of HTML
+                    )
+                    # end of code that runs if bird family length is not 0
                 }
                 
-                # makes a new list of ones that overlap
-                intersectionCodes <- intersect(birdsSightedList, familyCodesList)
-                # converts each code in the overlap to the common name
-                for(i in 1:length(intersectionCodes))
-                {
-                    birdFamilyName <- append(birdFamilyName, ebirdCodeToCommon(intersectionCodes[[i]]))
-                }
-                # HTML code for the body of the similar species box
-                HTML(
-                    # converts the entire list to one string with a separator
-                    paste(
-                        birdFamilyName,
-                        collapse = "<br/>",
-                        sep = " "
-                        # end of paste
-                    )
-                    # end of HTML
-                )
-                # end of code that runs if bird family length is not 0
+                # end of code that runs if species index is not FALSE
             }
-            
-            # end of code that runs if species index is not FALSE
-        }
-    })
+        })
+    }
     
     # output for sighting locations
     output$sightingLocations <-renderUI({
@@ -241,4 +267,6 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
     })
     # end of reactive search
+    
+    searchVar <<- as.integer(input$speciesSearchButton)
 })

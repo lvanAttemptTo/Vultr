@@ -4,7 +4,7 @@
 packageList <- c("tidyverse", "rebird", "shiny", "shinyWidgets", "shinydashboard",
                  "shinydashboardPlus", "auk", "dynutils", "shinyalert", "contactdata",
                  "countrycode", "geosphere", "shinyjs", "fresh", "leaflet", "dplyr",
-                 "shinyBS", "maps", "flickrAPI")
+                 "shinyBS", "maps", "FlickrAPI", "shinyauthr")
 newPackages <- packageList[!(packageList %in% installed.packages()[,"Package"])]
 
 if(length(newPackages)) install.packages(newPackages)
@@ -28,6 +28,7 @@ library("dplyr")
 library("shinyBS")
 library("maps")
 library("FlickrAPI")
+library("shinyauthr")
 
 
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
@@ -186,7 +187,8 @@ existsInTibble <- function(tibbleIn, column, term)
 }
 
 
-
+# user Info
+source("UserInfo/UserTibble.R", local = TRUE)
 
 # ui script
 source("Ui/Ui_Shell.R", local = TRUE)
@@ -195,6 +197,7 @@ source("Ui/Ui_Shell.R", local = TRUE)
 correct <- 0
 incorrect <- 0
 quizSubmit <- 0
+searchVar <- 0
 source("Server/Server_Shell.R", local = TRUE)
 
 # creates the app

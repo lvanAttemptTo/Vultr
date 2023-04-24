@@ -48,6 +48,7 @@ ui <- function()
         
         body = dashboardBody(
             use_theme(colorScheme),
+            
             # holds all the tabs
             tabItems(
                 

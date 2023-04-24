@@ -142,6 +142,12 @@ observeEvent(c(input$country, input$longitudeinput), {
             choices = c("None"),
             selected = "None"
         )
+        updateSelectInput(
+            inputId = "county",
+            label = "County",
+            choices = c("None"),
+            selected = "None"
+        )
     }
     # end of observe event for country selection
 })

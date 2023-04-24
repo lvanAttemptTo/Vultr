@@ -5,6 +5,7 @@ SettingsTab <- tabItem(
 		leafletOutput("locationInMap"),
 		style = "color: #121212")),
 	
+	shinyauthr::loginUI((id = "login")),
 	# fluid row for settings boxes
 	fluidRow(
 		# column for the location
