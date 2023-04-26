@@ -35,6 +35,7 @@ ui <- function()
                 id = "tabs",
                 sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search Species"),
                 #menuItem("Home", tabName = "home", icon = icon("house", lib = "font-awesome")),
+                menuItem("Login", tabName = "login", icon = icon("user", lib = "font-awesome")),
                 menuItem("Species Information", tabName = "speciesSearch", icon = icon("magnifying-glass", lib = "font-awesome")),
                 menuItem("Settings", tabName = "settings", icon = icon("gear", lib = "font-awesome")),
                 menuItem("Species", tabName = "species", icon = icon("feather", lib = "font-awesome")),
@@ -48,6 +49,16 @@ ui <- function()
         
         body = dashboardBody(
             use_theme(colorScheme),
+            
+            shinyauthr::loginUI(
+                "login", 
+                cookie_expiry = cookie_expiry, 
+                additional_ui = tagList(
+                    tags$p("test the different outputs from the sample logins below
+             as well as an invalid login attempt.", class = "text-center"),
+                    HTML(knitr::kable(user_base[, -3], format = "html", table.attr = "style='width:100%;'"))
+                )
+            ),
             
             # holds all the tabs
             tabItems(
@@ -64,6 +75,10 @@ ui <- function()
                 SpeciesMapTab,
                 
                 QuizTab
+                
+                
+                
+                
                 
                 
             # end of tab items

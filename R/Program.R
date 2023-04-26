@@ -4,7 +4,7 @@
 packageList <- c("tidyverse", "rebird", "shiny", "shinyWidgets", "shinydashboard",
                  "shinydashboardPlus", "auk", "dynutils", "shinyalert", "contactdata",
                  "countrycode", "geosphere", "shinyjs", "fresh", "leaflet", "dplyr",
-                 "shinyBS", "maps", "FlickrAPI", "shinyauthr")
+                 "shinyBS", "maps", "FlickrAPI", "shinymanager", "scrypt")
 newPackages <- packageList[!(packageList %in% installed.packages()[,"Package"])]
 
 if(length(newPackages)) install.packages(newPackages)
@@ -29,6 +29,10 @@ library("shinyBS")
 library("maps")
 library("FlickrAPI")
 library("shinyauthr")
+library("RSQLite")
+library("glue")
+library("DBI")
+library("lubridate")
 
 
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
@@ -188,11 +192,12 @@ existsInTibble <- function(tibbleIn, column, term)
 
 
 # user Info
-source("UserInfo/UserTibble.R", local = TRUE)
+source("UserInfo/credentials.R", local = TRUE)
 
 # ui script
 source("Ui/Ui_Shell.R", local = TRUE)
 # server script
+
 
 correct <- 0
 incorrect <- 0

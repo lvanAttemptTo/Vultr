@@ -8,7 +8,7 @@ output$SimilarSpeciesTitle <- renderUI({
 		# set location to the county
 	    locationName <- paste(county, "", sep = "")
 	}
-	else if(state != "") # if there is a state
+	else if(state != "None") # if there is a state
 	{
 		# set location to state
 		locationName <- state
@@ -34,15 +34,29 @@ output$regionSightingsTitle <- renderUI({
 	state <- input$state # full name of state
 	county <- input$county # full name of county
 	area <- input$speciesListArea # input for country, state, or county
-	if(county != "None" & area == "County") # if there is a county and it is selected
+	if(area == "County") # if there is a county and it is selected
 	{
-		# location is the county
-		locationName <- paste(county, "", sep = "")
+	    if (county != "None")
+	    {
+	        #location is the county
+	        locationName <- paste(county, "", sep = "")
+	    }
+		else
+		{
+		    locationName <- "ERROR: No County"
+		}
 	}
-	else if(state != "" & area == "State") # if the state is set and selected
+	else if(area == "State") # if the state is set and selected
 	{
-		# location is the state
-		locationName <- state
+	    if (county != "None")
+	    {
+	        #location is the state
+	        locationName <- paste(state, "", sep = "")
+	    }
+	    else
+	    {
+	        locationName <- "ERROR: No State"
+	    }
 	}
 	else if(area == "Country") # if country is selected
 	{
@@ -52,7 +66,7 @@ output$regionSightingsTitle <- renderUI({
 	else # this triggers for the case where there is not county but is selected
 	{
 		# sets location to error for no county
-		locationName <- "ERROR: No County"
+		locationName <- "ERROR"
 	}
 	# sets the string for the title
 	paste(
