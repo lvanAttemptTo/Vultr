@@ -36,7 +36,6 @@ library("lubridate")
 
 
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
-print(unlist(strsplit("USA:Hawaii",":"))[2])
 
 currentDate <- Sys.Date()
 
@@ -58,8 +57,7 @@ searchTibble <- function(inTibble, term)
 
 print(as.integer(searchTibble(speciesTibble, "House Sparrow")[1]))
 
-countryList <- iso3166$ISOname
-
+countryList <- as.list(ebirdsubregionlist(regionType = "country", key = APIkey)$name)
 
 codeCommonNameDict <- c()
 commonNameIndexDict <- c()
@@ -203,6 +201,7 @@ correct <- 0
 incorrect <- 0
 quizSubmit <- 0
 searchVar <- 0
+signedInFlag <- FALSE
 source("Server/Server_Shell.R", local = TRUE)
 
 # creates the app

@@ -22,9 +22,13 @@ db <- dbConnect(SQLite(), ":memory:")
 dbCreateTable(db, "sessions", c(user = "TEXT", sessionid = "TEXT", login_time = "TEXT"))
 
 user_base <- tibble(
-    user = c("user1", "user2"),
-    password = c("pass1", "pass2"),
-    password_hash = sapply(c("pass1", "pass2"), sodium::password_store),
+    user = c("lvan", "abc"),
+    password = c("test", "pass"),
+    password_hash = sapply(c("test", "pass"), sodium::password_store),
     permissions = c("admin", "standard"),
-    name = c("User One", "User Two")
+    name = c("Luke VanDeGrift", "ABC"),
+    country = c("United States", "United Kingdom"),
+    state = c("Oregon", "England"),
+    county = c("Multnomah", "Bedfordshire"),
+    ebirdKey = c ("vmgu1o6c6ihc", "vmgu1o6c6ihc")
 )

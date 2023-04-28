@@ -89,7 +89,7 @@ SettingsTab <- tabItem(
 				# text with a link to where you can get a key
 				uiOutput("APILink"),
 				# text box for inputting key
-				textInput("apikey", "", value = "vmgu1o6c6ihc")
+				textInput("apikey", value = "", label = "")
 				# end of API key box
 			),
 			

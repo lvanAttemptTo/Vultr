@@ -19,6 +19,75 @@ server <- function(input, output, session)
         active = reactive(credentials()$user_auth)
     )
     
+    user_info <- reactive({
+        credentials()$info
+    })
+    
+    
+    
+    output$loginName <- renderText({
+        userdata <- user_info()
+        signedInFlag <<-TRUE
+        if (!is.null(userdata$name))
+        {
+            key <- userdata$ebirdKey
+            updateTextInput(inputId = "apikey", value = key)
+            updateSelectInput(inputId = "country", choices = countryList, selected = userdata$country)
+            countryCode <- countrycode(userdata$country,origin = 'country.name', destination = 'iso2c')
+            subregion1Tibble <- ebirdsubregionlist(regionType = "subnational1", parentRegionCode = countryCode, key = key)
+            statesList <- as.list(subregion1Tibble$name)
+            state = userdata$state
+            if (length(statesList) > 0)
+            {
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = statesList,
+                    selected = state
+                )
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                county <- userdata$county
+                if (county != "None")
+                {
+                    countyList <- as.list(ebirdsubregionlist("subnational2", stateCode, key = key)$name)
+                    updateSelectInput(
+                        inputId = "county",
+                        label = "County",
+                        choices = countyList,
+                        selected = county
+                    )
+                }
+                else
+                {
+                    updateSelectInput(
+                        inputId = "county",
+                        label = "County",
+                        choices = c("None"),
+                        selected = "None"
+                    )
+                }
+            }
+            else
+            {
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = c("None"),
+                    selected = "None"
+                )
+            }
+        }
+        
+        HTML(
+            paste(
+                userdata$name,
+                sep = ""
+            )
+        )
+    })
+    
+    
+    
     # settings tab
     source("Server/Server_Settings.R", local = TRUE)
 	

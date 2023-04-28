@@ -33,7 +33,10 @@ ui <- function()
         sidebar = dashboardSidebar(
             sidebarMenu(
                 id = "tabs",
+                
                 sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search Species"),
+                textOutput("loginName"),
+                shinyauthr::logoutUI("logout"),
                 #menuItem("Home", tabName = "home", icon = icon("house", lib = "font-awesome")),
                 menuItem("Login", tabName = "login", icon = icon("user", lib = "font-awesome")),
                 menuItem("Species Information", tabName = "speciesSearch", icon = icon("magnifying-glass", lib = "font-awesome")),
@@ -41,6 +44,8 @@ ui <- function()
                 menuItem("Species", tabName = "species", icon = icon("feather", lib = "font-awesome")),
                 menuItem("Map", tabName = "map", icon = icon("location-dot", lib = "font-awesome")),
                 menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
+
+                
                 
                 # end of sidebar menu
             )
@@ -50,18 +55,18 @@ ui <- function()
         body = dashboardBody(
             use_theme(colorScheme),
             
-            shinyauthr::loginUI(
-                "login", 
-                cookie_expiry = cookie_expiry, 
-                additional_ui = tagList(
-                    tags$p("test the different outputs from the sample logins below
-             as well as an invalid login attempt.", class = "text-center"),
-                    HTML(knitr::kable(user_base[, -3], format = "html", table.attr = "style='width:100%;'"))
-                )
-            ),
+            
             
             # holds all the tabs
             tabItems(
+                
+                tabItem(
+                    tabName = "login",
+                    shinyauthr::loginUI(
+                        "login", 
+                        cookie_expiry = cookie_expiry
+                    )
+                ),
                 
                 #Species Search tab
                 SpeciesInfoTab,
