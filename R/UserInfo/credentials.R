@@ -30,5 +30,10 @@ user_base <- tibble(
     country = c("United States", "United Kingdom"),
     state = c("Oregon", "England"),
     county = c("Multnomah", "Bedfordshire"),
-    ebirdKey = c ("vmgu1o6c6ihc", "vmgu1o6c6ihc")
+    ebirdKey = c ("vmgu1o6c6ihc", "vmgu1o6c6ihc"),
+    specificLocation = c(TRUE, FALSE),
+    specificLatitude = c("45.5896568645855", ""),
+    specificLongitude = c("-122.738592624664", ""),
+    radius = c(25, 10),
+    daysBack = c(7, 30)
 )

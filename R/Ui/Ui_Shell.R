@@ -35,14 +35,23 @@ ui <- function()
                 id = "tabs",
                 
                 sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search Species"),
-                textOutput("loginName"),
-                shinyauthr::logoutUI("logout"),
+                menuItem(
+                    "Account",
+                     menuItemOutput("loginName"),
+                     
+                     menuSubItem("Settings", tabName = "settings", icon = icon("gear", lib = "font-awesome")),
+                     shinyauthr::logoutUI("logout")
+                ),
                 #menuItem("Home", tabName = "home", icon = icon("house", lib = "font-awesome")),
-                menuItem("Login", tabName = "login", icon = icon("user", lib = "font-awesome")),
-                menuItem("Species Information", tabName = "speciesSearch", icon = icon("magnifying-glass", lib = "font-awesome")),
-                menuItem("Settings", tabName = "settings", icon = icon("gear", lib = "font-awesome")),
-                menuItem("Species", tabName = "species", icon = icon("feather", lib = "font-awesome")),
-                menuItem("Map", tabName = "map", icon = icon("location-dot", lib = "font-awesome")),
+                
+                menuItem("Species Search", icon = icon("magnifying-glass", lib = "font-awesome"),
+                     menuSubItem("Species Information", tabName = "speciesSearch", icon = icon("info", lib = "font-awesome")),
+                     menuSubItem("Map", tabName = "speciesMap", icon = icon("location-dot", lib = "font-awesome"))
+                ),
+                menuItem("Species", icon = icon("feather", lib = "font-awesome"),
+                    menuSubItem("Species List", tabName = "species", icon = icon("feather", lib = "font-awesome")),
+                    menuSubItem("Notable sightings", tabName = "notableMapTab", icon = icon("circle-exclamation", lib = "font-awesome"))
+                ),
                 menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
 
                 
@@ -79,7 +88,30 @@ ui <- function()
                 # tab for map of sighting locations
                 SpeciesMapTab,
                 
-                QuizTab
+                QuizTab,
+                
+                tabItem(
+                    tabName = "notableMapTab",
+                    box(
+                        # box appearance settings 
+                        title = "Notable Sightings",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary",
+                        
+                        # sets map height to height of window
+                        tags$style(type = "text/css", "#speciesMap {height: calc(100vh - 80px) !important;}"),
+                        # map for displaying locations the species been sighted at
+                        actionButton("notableMapReload", label = "Reload"),
+                        leafletOutput("notableMap"), 
+                        uiOutput("notableList")
+                        # end of map box
+                    )
+                    # end of map tab
+                )
                 
                 
                 

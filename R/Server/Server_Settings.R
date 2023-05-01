@@ -25,7 +25,7 @@ observeEvent(input$locationInMap_click, {
     # updates the ui
     updateSelectInput(inputId = "specificlocationtoggle", selected = TRUE) # toggle for specific location setting
     updateNumericInput(inputId = "latiudeinput", value = lat) # numeric input for lat
-    updateNumericInput(inputId = "longitudeinput", value = lng) # numeric inut for lng
+    updateNumericInput(inputId = "longitudeinput", value = lng) # numeric input for lng
     toggleModal(session = session, "locationInModal") # hides the modal
     
     country1 <- map.where(x = lng, y = lat)

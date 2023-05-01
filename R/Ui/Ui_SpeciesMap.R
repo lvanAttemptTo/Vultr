@@ -1,5 +1,5 @@
 SpeciesMapTab <- tabItem(
-	tabName = "map", # tab ID
+	tabName = "speciesMap", # tab ID
 	# box for the map
 	box(
 		# box appearance settings 

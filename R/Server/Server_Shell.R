@@ -1,92 +1,7 @@
 server <- function(input, output, session)
 {
-    credentials <- shinyauthr::loginServer(
-        id = "login",
-        data = user_base,
-        user_col = user,
-        pwd_col = password_hash,
-        sodium_hashed = TRUE,
-        cookie_logins = TRUE,
-        sessionid_col = sessionid,
-        cookie_getter = get_sessions_from_db,
-        cookie_setter = add_session_to_db,
-        log_out = reactive(logout_init())
-    )
-    
-    # call the logout module with reactive trigger to hide/show
-    logout_init <- shinyauthr::logoutServer(
-        id = "logout",
-        active = reactive(credentials()$user_auth)
-    )
-    
-    user_info <- reactive({
-        credentials()$info
-    })
-    
-    
-    
-    output$loginName <- renderText({
-        userdata <- user_info()
-        signedInFlag <<-TRUE
-        if (!is.null(userdata$name))
-        {
-            key <- userdata$ebirdKey
-            updateTextInput(inputId = "apikey", value = key)
-            updateSelectInput(inputId = "country", choices = countryList, selected = userdata$country)
-            countryCode <- countrycode(userdata$country,origin = 'country.name', destination = 'iso2c')
-            subregion1Tibble <- ebirdsubregionlist(regionType = "subnational1", parentRegionCode = countryCode, key = key)
-            statesList <- as.list(subregion1Tibble$name)
-            state = userdata$state
-            if (length(statesList) > 0)
-            {
-                updateSelectInput(
-                    inputId = "state",
-                    label = "State",
-                    choices = statesList,
-                    selected = state
-                )
-                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
-                county <- userdata$county
-                if (county != "None")
-                {
-                    countyList <- as.list(ebirdsubregionlist("subnational2", stateCode, key = key)$name)
-                    updateSelectInput(
-                        inputId = "county",
-                        label = "County",
-                        choices = countyList,
-                        selected = county
-                    )
-                }
-                else
-                {
-                    updateSelectInput(
-                        inputId = "county",
-                        label = "County",
-                        choices = c("None"),
-                        selected = "None"
-                    )
-                }
-            }
-            else
-            {
-                updateSelectInput(
-                    inputId = "state",
-                    label = "State",
-                    choices = c("None"),
-                    selected = "None"
-                )
-            }
-        }
-        
-        HTML(
-            paste(
-                userdata$name,
-                sep = ""
-            )
-        )
-    })
-    
-    
+    # log in code
+    source("Server/Server_LogIn.R", local = TRUE)
     
     # settings tab
     source("Server/Server_Settings.R", local = TRUE)
@@ -103,5 +18,151 @@ server <- function(input, output, session)
     
     # quiz tab
     source("Server/Server_Quiz.R", local = TRUE)
+    
+    #notable sightings map
+    observeEvent(input$notableMapReload, {
+        
+            key <- input$apikey
+            
+            if (key != "")
+            {
+                locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
+                country <- input$country # full name of country
+                countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+                state <- input$state # full name of the state
+                stateCode <- "" # ebird state code
+                county <- input$county # full name of county
+                countyCode <- "" # ebird code for the county
+                # tibble that contains the codes for the states and the full names
+                subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+                
+                
+                if(state != "None")
+                {
+                    stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                    subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+                }
+                else
+                {
+                    subregion2Tibble <- tibble()
+                }
+                # tibble that has all the codes and names for counties in the state
+                # but it will be 0x0 if there are none
+                
+                # checks if there are counties for the given state
+                if (nrow(subregion2Tibble) > 0)
+                {
+                    # if there were counties it goes through and finds the county code
+                    # for the given input
+                    
+                    countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                    
+                    
+                    if (!locationSet)  # if the user has not set a specific location
+                    {
+                        # this gets the information on the county from rebird
+                        countyInfoTibble <- ebirdregioninfo(countyCode, key = key)
+                        # calculates the average latitude and longitude for the county
+                        latitude <- (countyInfoTibble[[4]] + countyInfoTibble[[5]])/2
+                        longitude <- (countyInfoTibble[[2]] + countyInfoTibble[[3]])/2
+                    }
+                    else # if the user has set a specific location
+                    {
+                        # sets the lat and long to the users input
+                        latitude <- input$latiudeinput
+                        longitude <- input$longitudeinput
+                    }
+                }
+                else if (state != "None")# if there is not a county
+                {
+                    if (!locationSet)  # if the user has not set a specific location
+                    {
+                        # gets the information on the state from rebird
+                        stateInfoTibble <- ebirdregioninfo(stateCode, key = key)
+                        # calculates the average latitude and longitude for the state
+                        latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
+                        longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
+                    }
+                    else # if the user has set a specific location
+                    {
+                        # sets the lat and long to the users input
+                        latitude <- input$latiudeinput
+                        longitude <- input$longitudeinput
+                    }
+                }
+                else
+                {
+                    if (!locationSet)  # if the user has not set a specific location
+                    {
+                        # gets the information on the state from rebird
+                        countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
+                        # calculates the average latitude and longitude for the state
+                        latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
+                        longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
+                    }
+                    else # if the user has set a specific location
+                    {
+                        # sets the lat and long to the users input
+                        latitude <- input$latiudeinput
+                        longitude <- input$longitudeinput
+                    }
+                }
+            
+            
+                notableTibble <- ebirdnotable(lat = latitude, lng = longitude, key = key, dist = input$radius, back = input$daysBack)
+                latList <- c(latitude)
+                lngList <- c(longitude)
+                latList <- append(latList, notableTibble$lat)
+                lngList <- append(lngList, notableTibble$lng)
+                locationNames <- c("User")
+                locationNames <- append(locationNames, notableTibble$comName)
+                typeVector <- "user"
+                
+                for (i in 2:length(lngList))
+                {
+                    typeVector <- append(typeVector, "sighting")
+                }
+                # data frame with the information
+                dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                icons <- awesomeIconList(
+                    user = makeAwesomeIcon(
+                        icon = "user",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkblue"
+                    ),
+                    sighting = makeAwesomeIcon(
+                        icon = "binoculars",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "blue",
+                        
+                    )
+                )
+            }
+            output$notableMap <- renderLeaflet({
+                leaflet(data = dataFrame) %>%
+                    addProviderTiles(providers$Esri.WorldImagery)%>%
+                    addProviderTiles(providers$Stamen.TonerLabels) %>%
+                    addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
+            
+            })
+            output$notableList <- renderUI({
+                notableNames <- notableTibble$comName
+                notableNames <- notableNames[!duplicated(notableNames)]
+                notableNames <- as.list(notableNames)
+                HTML(
+                    # converts the entire list to one string with a separator
+                    paste(
+                        notableNames,
+                        collapse = "<br/>",
+                        sep = " "
+                        # end of paste
+                    )
+                    # end of HTML
+                )
+            })
+        
+    })
 
 }
