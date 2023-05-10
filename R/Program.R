@@ -35,6 +35,7 @@ library("DBI")
 library("lubridate")
 
 
+
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
 
 currentDate <- Sys.Date()
