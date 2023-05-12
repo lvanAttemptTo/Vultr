@@ -1,6 +1,3 @@
-# installs packages that are not installed
-
-# list of required packages
 
 
 library("tidyverse")
@@ -22,10 +19,220 @@ library("dplyr")
 library("shinyBS")
 library("maps")
 library("FlickrAPI")
+library("shinyauthr")
+library("RSQLite")
+library("glue")
+library("DBI")
+library("lubridate")
+
+
+# custom ebird API library
+library("httr")
+library("stringr")
+
+
+nearbyObs <- function(key = NA, lat = NA, lng = NA, dist = 25, back = 14, cat = "all", hotspot = FALSE, includeProvisional = FALSE, sort = "date", sppLocale = "en", maxResults = "all")
+{
+    if (!is.na(key) & !is.na(lat) & !is.na(lng))
+    {
+        headers = c(
+            
+            'X-eBirdApiToken' = key
+        )
+        if (cat == "all" & maxResults == "all")
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale), add_headers(headers))
+        }
+        else if (cat != "all" & maxResults != "all")
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat, "&maxResults=", maxResults), add_headers(headers))
+        }
+        else if (cat != "all")
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat), add_headers(headers))
+        }
+        else
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&maxResults=", maxResults), add_headers(headers))
+        }
+        catRes <- content(res, 'text')
+        parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
+        parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
+        parsedSightingInformation <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
+        
+        for (i in 1:(length(parsedSightings)-1))
+        {
+            testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
+            testParse2 <- unlist(str_split(testParse1, ',\"'))
+            testParse3 <- list()
+            for (j in testParse2)
+            {
+                p <- unlist(str_split(j, "[:]"))[2]
+                
+                p <- gsub('"', "", p)
+                
+                if (p == "true")
+                {
+                    p <- TRUE
+                }
+                else if (p == "false")
+                {
+                    p <- FALSE
+                }
+                suppressWarnings(
+                    expr = {
+                        if (!is.na(as.numeric(p)))
+                        {
+                            p <- as.numeric(p)
+                        }
+                    }
+                    
+                    
+                )
+                
+                
+                testParse3 <- append(testParse3, p)
+            }
+            if (length(testParse3) == 12)
+            {
+                temp <- testParse3[1:6]
+                temp <- append(temp, NaN)
+                temp <- append(temp, testParse3[7:12])
+                testParse3 <- temp
+            }
+            else if(length(testParse3) == 14)
+            {
+                testParse3 <- testParse3[1:13]
+            }
+            parsedSightingInformation[i,] <- testParse3
+        }
+        # df <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
+        # for (i in 1:length(catRes))
+        # {
+        #     
+        #     df[i,] <- catRes[[i]]
+        # }
+        # return(df)
+        return(parsedSightingInformation)
+    }
+    else if (is.na(key))
+    {
+        warning("No key set")
+    }
+    else if (is.na(lat))
+    {
+        warning("No latitude set")
+    }
+    else if (is.na(lng))
+    {
+        warning("No longitude set")
+    }
+}
+
+
+regionObs <- function(key = NA, regionCode = NA, back = 14, cat = "all", hotspot = FALSE, includeProvisional = FALSE, sppLocale = "en", maxResults = "all")
+{
+    if (!is.na(key) & !is.na(regionCode))
+    {
+        headers = c(
+            
+            'X-eBirdApiToken' = key
+        )
+        
+        if (cat == "all" & maxResults == "all")
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale), add_headers(headers))
+        }
+        else if (cat != "all" & maxResults != "all")
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat, "&maxResults=", maxResults), add_headers(headers))
+        }
+        else if (cat != "all")
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat), add_headers(headers))
+        }
+        else
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&maxResults=", maxResults), add_headers(headers))
+        }
+        
+        catRes <- content(res, 'text')
+        parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
+        parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
+        parsedSightingInformation <-data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
+        
+        for (i in 1:(length(parsedSightings)-1))
+        {
+            testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
+            testParse2 <- unlist(str_split(testParse1, ',\"'))
+            testParse3 <- list()
+            for (j in testParse2)
+            {
+                p <- unlist(str_split(j, "[:]"))[2]
+                
+                p <- gsub('"', "", p)
+                
+                if (p == "true")
+                {
+                    p <- TRUE
+                }
+                else if (p == "false")
+                {
+                    p <- FALSE
+                }
+                suppressWarnings(
+                    expr = {
+                        if (!is.na(as.numeric(p)))
+                        {
+                            p <- as.numeric(p)
+                        }
+                    }
+                    
+                    
+                )
+                
+                testParse3 <- append(testParse3, p)
+            }
+            if (length(testParse3) == 12)
+            {
+                temp <- testParse3[1:6]
+                temp <- append(temp, NaN)
+                temp <- append(temp, testParse3[7:12])
+                testParse3 <- temp
+            }
+            else if(length(testParse3) == 14)
+            {
+                testParse3 <- testParse3[1:13]
+            }
+            parsedSightingInformation[i,] <- testParse3
+        }
+        # df <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
+        # for (i in 1:length(catRes))
+        # {
+        #     
+        #     df[i,] <- catRes[[i]]
+        # }
+        # return(df)
+        return(parsedSightingInformation)
+    }
+    else if (is.na(key))
+    {
+        warning("No key set")
+    }
+    else if (is.na(lat))
+    {
+        warning("No latitude set")
+    }
+    else if (is.na(lng))
+    {
+        warning("No longitude set")
+    }
+}
+
+
 
 
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
-print(unlist(strsplit("USA:Hawaii",":"))[2])
 
 currentDate <- Sys.Date()
 
@@ -45,10 +252,8 @@ searchTibble <- function(inTibble, term)
     return(occurences)
 }
 
-print(as.integer(searchTibble(speciesTibble, "House Sparrow")[1]))
 
-countryList <- iso3166$ISOname
-
+countryList <- as.list(ebirdsubregionlist(regionType = "country", key = APIkey)$name)
 
 codeCommonNameDict <- c()
 commonNameIndexDict <- c()
@@ -180,6 +385,49 @@ existsInTibble <- function(tibbleIn, column, term)
 }
 
 
+# user Info
+cookie_expiry <- 7
+
+# This function must return a data.frame with columns user and sessionid.  Other columns are also okay
+# and will be made available to the app after log in.
+
+get_sessions_from_db <- function(conn = db, expiry = cookie_expiry) {
+    dbReadTable(conn, "sessions") %>%
+        mutate(login_time = ymd_hms(login_time)) %>%
+        as_tibble() %>%
+        filter(login_time > now() - days(expiry))
+}
+
+# This function must accept two parameters: user and sessionid. It will be called whenever the user
+# successfully logs in with a password.
+
+add_session_to_db <- function(user, sessionid, conn = db) {
+    tibble(user = user, sessionid = sessionid, login_time = as.character(now())) %>%
+        dbWriteTable(conn, "sessions", ., append = TRUE)
+}
+
+db <- dbConnect(SQLite(), ":memory:")
+dbCreateTable(db, "sessions", c(user = "TEXT", sessionid = "TEXT", login_time = "TEXT"))
+
+user_base <- tibble(
+    user = c("lvan", "abc"),
+    password = c("test", "pass"),
+    password_hash = sapply(c("test", "pass"), sodium::password_store),
+    permissions = c("admin", "standard"),
+    name = c("Luke VanDeGrift", "ABC"),
+    country = c("United States", "United Kingdom"),
+    state = c("Oregon", "England"),
+    county = c("Multnomah", "Bedfordshire"),
+    ebirdKey = c ("vmgu1o6c6ihc", "vmgu1o6c6ihc"),
+    specificLocation = c(TRUE, FALSE),
+    specificLatitude = c("45.5896568645855", ""),
+    specificLongitude = c("-122.738592624664", ""),
+    radius = c(25, 10),
+    daysBack = c(7, 30),
+    lifeList = c("Merlin;Rufous Hummingbird;Hutton's Vireo;Lesser Yellowlegs;Rhinoceros Auklet;Dunlin;Sanderling;Black Turnstone;Brant;White-winged Scoter;Surf Scoter;Long-tailed Duck;Pigeon Guillemot;Red-necked Grebe;Barrow's Goldeneye;Pileated Woodpecker;Rough-legged Hawk;Short-eared Owl;Hooded Merganser;Western Bluebird;Red-crowned Parrot;Acorn Woodpecker;Blue-gray Gnatcatcher;Sharp-shinned Hawk;Black-necked Stilt;Greater Roadrunner;Clark's Grebe;Yellow-crowned Night-Heron;Ridgway's Rail;Lincoln's Sparrow;Cassin's Kingbird;American Pipit;Whimbrel;Wrentit;Say's Phoebe;Royal Tern;Forster's Tern;Caspian Tern;Short-billed Gull;Willet;Long-billed Curlew;White-faced Ibis;Common Gallinule;Hermit Thrush;House Wren;Red-shouldered Hawk;Orange-crowned Warbler;California Towhee;Black Phoebe;Allen's Hummingbird;Snowy Egret;Pelagic Cormorant;Brandt's Cormorant;Heermann's Gull;Common Murre;Harlequin Duck;Brown Pelican;Purple Finch;Band-tailed Pigeon;Western Gull;Glaucous-winged Gull;Pacific Wren;Pacific-slope Flycatcher;Lazuli Bunting;Yellow-breasted Chat;Swainson's Thrush;Spotted Sandpiper;Horned Lark;Cassin's Finch;Trumpeter Swan;Broad-tailed Hummingbird;MacGillivray's Warbler;Dusky Flycatcher;Willow Flycatcher;Western Wood-Pewee;Yellow Warbler;Mountain Bluebird;Mountain Chickadee;Clark's Nutcracker;White-throated Swift;Eared Grebe;Great Horned Owl;Gray Catbird;Brown Thrasher;Green Heron;Herring Gull;Ring-billed Gull;Blue Jay;Bobolink;Cooper's Hawk;Baltimore Oriole;Dickcissel;Northern Cardinal;Chipping Sparrow;Chimney Swift;Common Grackle;Brown-headed Cowbird;Western Meadowlark;Common Nighthawk;Common Raven;Western Kingbird;Black-billed Magpie;Swainson's Hawk;Eastern Kingbird;Prairie Falcon;Ferruginous Hawk;California Gull;Eurasian Collared-Dove;California Quail;Warbling Vireo;Black-headed Grosbeak;Vaux's Swift;Wilson's Warbler;Western Tanager;Yellow-headed Blackbird;Savannah Sparrow;Marsh Wren;Northern Rough-winged Swallow;Blue-winged Teal;Yellow-rumped Warbler;Common Yellowthroat;Greater Yellowlegs;Pied-billed Grebe;Cliff Swallow;Barn Swallow;Purple Martin;Violet-green Swallow;Turkey Vulture;Peregrine Falcon;Osprey;Golden Eagle;Red-throated Loon;Greater Scaup;Tufted Duck;Harris's Sparrow;Ring-necked Duck;Canvasback;Snow Goose;Sandhill Crane;Killdeer;Western Grebe;Horned Grebe;Common Goldeneye;Lesser Scaup;Steller's Jay;White-throated Sparrow;Brown Booby;Red Junglefowl;Pacific Golden-Plover;Warbling White-eye;Red-vented Bulbul;Rose-ringed Parakeet;Black-crowned Night-Heron;Zebra Dove;Yellow-fronted Canary;Cattle Egret;Common Waxbill;White Tern;Red-crested Cardinal;Java Sparrow;Rock Pigeon;Common Myna;Spotted Dove;American White Pelican;European Starling;Black-capped Chickadee;American Kestrel;Belted Kingfisher;Wilson's Snipe;Long-billed Dowitcher;American Coot;Ruddy Duck;Common Merganser;Bufflehead;Green-winged Teal;Northern Pintail;Mallard;American Wigeon;Gadwall;Northern Shoveler;Tundra Swan;Brewer's Blackbird;American Robin;Spotted Towhee;Fox Sparrow;American Bittern;Red-breasted Merganser;Eurasian Wigeon;Wood Duck;Pine Siskin;American Crow;Bushtit;Double-crested Cormorant;Cedar Waxwing;Bald Eagle;Cackling Goose;Canada Goose;Dark-eyed Junco;Bewick's Wren;Ruby-crowned Kinglet;Red-breasted Sapsucker;Anna's Hummingbird;Chestnut-backed Chickadee;Northern Flicker;White-breasted Nuthatch;Downy Woodpecker;Golden-crowned Sparrow;White-crowned Sparrow;American Goldfinch;Lesser Goldfinch;House Finch;California Scrub-Jay;Mourning Dove;Golden-crowned Kinglet;Brown Creeper;House Sparrow;Red-winged Blackbird;Bank Swallow;Tree Swallow;Hairy Woodpecker;Great Gray Owl;Red-breasted Nuthatch;Canada Jay;Ruffed Grouse;Song Sparrow;Varied Thrush;Northern Harrier;Great Egret;Great Blue Heron;Cinnamon Teal;Red-tailed Hawk;Indian Peafowl;Mandarin Duck;cormorant sp.;swallow sp.;goose sp.;new world sparrow sp.;Buteo sp.;gull sp.", "House Sparrow")
+)
+
+
 
 
 # ui script
@@ -271,6 +519,7 @@ SettingsTab <- tabItem(
         leafletOutput("locationInMap"),
         style = "color: #121212")),
     
+    shinyauthr::loginUI((id = "login")),
     # fluid row for settings boxes
     fluidRow(
         # column for the location
@@ -354,7 +603,7 @@ SettingsTab <- tabItem(
                 # text with a link to where you can get a key
                 uiOutput("APILink"),
                 # text box for inputting key
-                textInput("apikey", "", value = "vmgu1o6c6ihc")
+                textInput("apikey", value = "", label = "")
                 # end of API key box
             ),
             
@@ -423,7 +672,7 @@ SpeciesListTab <- tabItem(
     # end of species tab
 )
 SpeciesMapTab <- tabItem(
-    tabName = "map", # tab ID
+    tabName = "speciesMap", # tab ID
     # box for the map
     box(
         # box appearance settings 
@@ -443,7 +692,6 @@ SpeciesMapTab <- tabItem(
     )
     # end of map tab
 )
-
 QuizTab <- tabItem(
     tabName = "quiz",
     
@@ -481,13 +729,29 @@ ui <- function()
         sidebar = dashboardSidebar(
             sidebarMenu(
                 id = "tabs",
+                
                 sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search Species"),
+                menuItem(
+                    "Account",
+                    menuItemOutput("loginName"),
+                    
+                    menuSubItem("Settings", tabName = "settings", icon = icon("gear", lib = "font-awesome")),
+                    shinyauthr::logoutUI("logout")
+                ),
                 #menuItem("Home", tabName = "home", icon = icon("house", lib = "font-awesome")),
-                menuItem("Species Information", tabName = "speciesSearch", icon = icon("magnifying-glass", lib = "font-awesome")),
-                menuItem("Settings", tabName = "settings", icon = icon("gear", lib = "font-awesome")),
-                menuItem("Species", tabName = "species", icon = icon("feather", lib = "font-awesome")),
-                menuItem("Map", tabName = "map", icon = icon("location-dot", lib = "font-awesome")),
+                
+                menuItem("Species Search", icon = icon("magnifying-glass", lib = "font-awesome"),
+                         menuSubItem("Species Information", tabName = "speciesSearch", icon = icon("info", lib = "font-awesome")),
+                         menuSubItem("Map", tabName = "speciesMap", icon = icon("location-dot", lib = "font-awesome"))
+                ),
+                menuItem("Species", icon = icon("feather", lib = "font-awesome"),
+                         menuSubItem("Species List", tabName = "species", icon = icon("feather", lib = "font-awesome")),
+                         menuSubItem("Notable sightings", tabName = "notableMapTab", icon = icon("circle-exclamation", lib = "font-awesome")),
+                         menuSubItem("Target Map", tabName = "targetMapTab", icon = icon("plus", lib = "font-awesome"))
+                ),
                 menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
+                
+                
                 
                 # end of sidebar menu
             )
@@ -496,8 +760,19 @@ ui <- function()
         
         body = dashboardBody(
             use_theme(colorScheme),
+            
+            
+            
             # holds all the tabs
             tabItems(
+                
+                tabItem(
+                    tabName = "login",
+                    shinyauthr::loginUI(
+                        "login", 
+                        cookie_expiry = cookie_expiry
+                    )
+                ),
                 
                 #Species Search tab
                 SpeciesInfoTab,
@@ -510,7 +785,57 @@ ui <- function()
                 # tab for map of sighting locations
                 SpeciesMapTab,
                 
-                QuizTab
+                QuizTab,
+                
+                tabItem(
+                    tabName = "notableMapTab",
+                    box(
+                        # box appearance settings 
+                        title = "Notable Sightings",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary",
+                        
+                        # sets map height to height of window
+                        tags$style(type = "text/css", "#notableMap {height: calc(100vh - 80px) !important;}"),
+                        # map for displaying locations the species been sighted at
+                        actionButton("notableMapReload", label = "Reload"),
+                        leafletOutput("notableMap"), 
+                        uiOutput("notableList")
+                        # end of map box
+                    )
+                    # end of map tab
+                ),
+                
+                tabItem(
+                    tabName = "targetMapTab",
+                    box(
+                        # box appearance settings 
+                        title = "Target Birds",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary",
+                        
+                        # sets map height to height of window
+                        tags$style(type = "text/css", "#targetMap {height: calc(100vh - 80px) !important;}"),
+                        # map for displaying locations the species been sighted at
+                        actionButton("targetMapReload", label = "Reload"),
+                        leafletOutput("targetMap"), 
+                        uiOutput("targetList")
+                        # end of map box
+                    )
+                    # end of map tab
+                )
+                
+                
+                
+                
                 
                 
                 # end of tab items
@@ -524,15 +849,122 @@ ui <- function()
     )
     # end of ui
 }
-
 # server script
+
 
 correct <- 0
 incorrect <- 0
 quizSubmit <- 0
 searchVar <- 0
+signedInFlag <- FALSE
 server <- function(input, output, session)
 {
+    # log in code
+    credentials <- shinyauthr::loginServer(
+        id = "login",
+        data = user_base,
+        user_col = user,
+        pwd_col = password_hash,
+        sodium_hashed = TRUE,
+        cookie_logins = TRUE,
+        sessionid_col = sessionid,
+        cookie_getter = get_sessions_from_db,
+        cookie_setter = add_session_to_db,
+        log_out = reactive(logout_init())
+    )
+    
+    # call the logout module with reactive trigger to hide/show
+    logout_init <- shinyauthr::logoutServer(
+        id = "logout",
+        active = reactive(credentials()$user_auth)
+        
+        
+    )
+    
+    user_info <- reactive({
+        credentials()$info
+    })
+    
+    
+    
+    output$loginName <- renderMenu({
+        userdata <- user_info()
+        signedInFlag <<-TRUE
+        if (!is.null(userdata$name))
+        {
+            key <- userdata$ebirdKey
+            updateTextInput(inputId = "apikey", value = key)
+            updateSelectInput(inputId = "country", choices = countryList, selected = userdata$country)
+            countryCode <- countrycode(userdata$country,origin = 'country.name', destination = 'iso2c')
+            subregion1Tibble <- ebirdsubregionlist(regionType = "subnational1", parentRegionCode = countryCode, key = key)
+            statesList <- as.list(subregion1Tibble$name)
+            state = userdata$state
+            if (length(statesList) > 0)
+            {
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = statesList,
+                    selected = state
+                )
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                county <- userdata$county
+                if (county != "None")
+                {
+                    countyList <- as.list(ebirdsubregionlist("subnational2", stateCode, key = key)$name)
+                    updateSelectInput(
+                        inputId = "county",
+                        label = "County",
+                        choices = countyList,
+                        selected = county
+                    )
+                }
+                else
+                {
+                    updateSelectInput(
+                        inputId = "county",
+                        label = "County",
+                        choices = c("None"),
+                        selected = "None"
+                    )
+                }
+            }
+            else
+            {
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = c("None"),
+                    selected = "None"
+                )
+            }
+            # updates the log in tab to be the users name
+            
+            updateSwitchInput(inputId = "specificlocationtoggle", value = userdata$specificLocation)
+            if (userdata$specificLocation)
+            {
+                updateNumericInput(inputId = "latiudeinput", value = userdata$specificLatitude) # numeric input for lat
+                updateNumericInput(inputId = "longitudeinput", value = userdata$specificLongitude) # numeric input for lng
+            }
+            else
+            {
+                updateNumericInput(inputId = "latiudeinput", value = NULL) # numeric input for lat
+                updateNumericInput(inputId = "longitudeinput", value = NULL) # numeric input for lng
+            }
+            updateSliderInput(inputId = "radius", value = userdata$radius)
+            updateSliderInput(inputId = "daysback", value = userdata$daysBack)
+            
+            # keep update for menu Item at the very end
+            menuSubItem(userdata$name, icon = icon("user", lib = "font-awesome"))
+            
+        }
+        else
+        {
+            menuSubItem("Log In", tabName = "login", icon = icon("user", lib = "font-awesome"), selected = TRUE)
+        }
+        
+    })
+    
     # settings tab
     # map for selecting specific location
     output$locationInMap <- renderLeaflet({
@@ -561,16 +993,14 @@ server <- function(input, output, session)
         # updates the ui
         updateSelectInput(inputId = "specificlocationtoggle", selected = TRUE) # toggle for specific location setting
         updateNumericInput(inputId = "latiudeinput", value = lat) # numeric input for lat
-        updateNumericInput(inputId = "longitudeinput", value = lng) # numeric inut for lng
+        updateNumericInput(inputId = "longitudeinput", value = lng) # numeric input for lng
         toggleModal(session = session, "locationInModal") # hides the modal
         
         country1 <- map.where(x = lng, y = lat)
-        print(country1)
         if (grepl(":",country1))
         {
             country1 <- unlist(strsplit(country1,":"))[1]
         }
-        print(country1)
         pos <- which(iso3166 == country1, arr.ind = TRUE)[1,1]
         country2 <- iso3166[pos, "ISOname"]
         
@@ -619,73 +1049,73 @@ server <- function(input, output, session)
     # it is used to set the list of states in the country and add them to the
     # drop down menu
     observeEvent(c(input$country, input$longitudeinput), {
-        key <- input$apikey # key for the ebird APi
-        country <- input$country # full name of country selected
-        # 2 char code for the country that ebird uses to look stuff up
-        countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
-        # tibble that rebird returns that is 2 x n (state code, full name)
-        statesTibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
-        # list that will store all the full names of the states
-        statesList <- list()
-        # checks to make sure that the tibble retreval worked
-        if (nrow(statesTibble) > 0)
+        key <- input$apikey # key for the ebird API
+        if (key != "" & !signedInFlag)
         {
-            # loops through every row of the tibble and adds the full name to "statesList"
-            statesList <- as.list(statesTibble$name)
-            
-            # updates the SelectInput for the state with the list of states
-            
-            if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+            country <- input$country # full name of country selected
+            # 2 char code for the country that ebird uses to look stuff up
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
+            # tibble that rebird returns that is 2 x n (state code, full name)
+            statesTibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
+            # list that will store all the full names of the states
+            statesList <- list()
+            # checks to make sure that the tibble retreval worked
+            if (nrow(statesTibble) > 0)
             {
-                state <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "state"))
-                print(state)
-                if (grepl(":", state))
-                    print(state)
-                {
-                    if (unlist(strsplit(state, ":"))[1] %in% statesList)
-                    {
-                        state <- unlist(strsplit(state, ":"))[1]
-                    }
-                    else
-                    {
-                        state <- unlist(strsplit(state, ":"))[2]
-                    }
-                    }
-                print(state)
-                updateSelectInput(
-                    inputId = "state",
-                    label = "State",
-                    choices = statesList,
-                    selected = state
-                )
-            }
-            else 
-            {
-                updateSelectInput(
-                    inputId = "state",
-                    label = "State",
-                    choices = statesList,
-                    selected = NULL
-                )
-            }
-            # end of tibble check
-        }
-        else
-        {
-            updateSelectInput(
-                inputId = "state",
-                label = "State",
-                choices = c("None"),
-                selected = "None"
-            )
-            updateSelectInput(
-                inputId = "county",
-                label = "County",
-                choices = c("None"),
-                selected = "None"
+                # loops through every row of the tibble and adds the full name to "statesList"
+                statesList <- as.list(statesTibble$name)
                 
-            )
+                # updates the SelectInput for the state with the list of states
+                
+                if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+                {
+                    state <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "state"))
+                    if (grepl(":", state))
+                    {
+                        if (unlist(strsplit(state, ":"))[1] %in% statesList)
+                        {
+                            state <- unlist(strsplit(state, ":"))[1]
+                        }
+                        else
+                        {
+                            state <- unlist(strsplit(state, ":"))[2]
+                        }
+                        }
+                    updateSelectInput(
+                        inputId = "state",
+                        label = "State",
+                        choices = statesList,
+                        selected = state
+                    )
+                }
+                else 
+                {
+                    updateSelectInput(
+                        inputId = "state",
+                        label = "State",
+                        choices = statesList,
+                        selected = NULL
+                    )
+                }
+                # end of tibble check
+            }
+            else
+            {
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = c("None"),
+                    selected = "None"
+                )
+                updateSelectInput(
+                    inputId = "county",
+                    label = "County",
+                    choices = c("None"),
+                    selected = "None"
+                )
+            }
         }
+        signedInFlag <<- FALSE
         # end of observe event for country selection
     })
     
@@ -694,71 +1124,73 @@ server <- function(input, output, session)
     # it is used to generate the list of counties or set them to "None"
     observeEvent(input$state, ignoreInit = TRUE, {
         key <- input$apikey # key for ebird API
-        state <- input$state # full name of the state
-        country <- input$country # full name of the country
-        # 2 character country code
-        countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
-        # tibble that rebird returns that is 2 x n (state code, full name)
-        subregion1Tibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
-        # checks if state is not an empty string
-        if (state != "None")
+        if (key != "" & !signedInFlag)
         {
-            
-            stateCode <- "" # state code
-            # goes through the subregion1 tibble to find what the ebird code is
-            # for the state
-            # this block of code finds the ebird code for the state
-            stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
-            
-            # tibble the rebird that contains the ebird code for the county and 
-            # full names of the counties 
-            countyTibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
-            countyList <- list() # list that will store the full names of the counties
-            # checks if there are counties for the state
-            if (nrow(countyTibble) > 0)
+            state <- input$state # full name of the state
+            country <- input$country # full name of the country
+            # 2 character country code
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
+            # tibble that rebird returns that is 2 x n (state code, full name)
+            subregion1Tibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
+            # checks if state is not an empty string
+            if (state != "None")
             {
-                # goes through all the counties and add the full name to the list
-                countyList <- as.list(countyTibble$name)
                 
-                # updates the selectInput for county with the list of counties
-                if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+                stateCode <- "" # state code
+                # goes through the subregion1 tibble to find what the ebird code is
+                # for the state
+                # this block of code finds the ebird code for the state
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                
+                # tibble the rebird that contains the ebird code for the county and 
+                # full names of the counties 
+                countyTibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+                countyList <- list() # list that will store the full names of the counties
+                # checks if there are counties for the state
+                if (nrow(countyTibble) > 0)
                 {
-                    county <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "county"))
-                    print(county)
-                    county <- unlist(strsplit(county, ","))[2]
+                    # goes through all the counties and add the full name to the list
+                    countyList <- as.list(countyTibble$name)
                     
+                    # updates the selectInput for county with the list of counties
+                    if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+                    {
+                        county <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "county"))
+                        county <- unlist(strsplit(county, ","))[2]
+                        
+                        updateSelectInput(
+                            inputId = "county",
+                            label = "County",
+                            choices = countyList,
+                            selected = county
+                        )
+                    }
+                    else
+                    {
+                        updateSelectInput(
+                            inputId = "county",
+                            label = "County",
+                            choices = countyList,
+                            selected = NULL
+                        )
+                    }
+                    # end of county check
+                }
+                else # if there are no counties set the choices to "None"
+                {
                     updateSelectInput(
                         inputId = "county",
                         label = "County",
-                        choices = countyList,
-                        selected = county
+                        choices = c("None"),
+                        selected = "None"
+                        
                     )
+                    # end of county check else
                 }
-                else
-                {
-                    updateSelectInput(
-                        inputId = "county",
-                        label = "County",
-                        choices = countyList,
-                        selected = NULL
-                    )
-                }
-                # end of county check
+                # end of state check
             }
-            else # if there are no counties set the choices to "None"
-            {
-                updateSelectInput(
-                    inputId = "county",
-                    label = "County",
-                    choices = c("None"),
-                    selected = "None"
-                    
-                )
-                
-                # end of county check else
-            }
-            # end of state check
         }
+        signedInFlag <<- FALSE
         # end of observe event for state select
     })
     
@@ -773,7 +1205,7 @@ server <- function(input, output, session)
             # set location to the county
             locationName <- paste(county, "", sep = "")
         }
-        else if(state != "") # if there is a state
+        else if(state != "None") # if there is a state
         {
             # set location to state
             locationName <- state
@@ -799,15 +1231,29 @@ server <- function(input, output, session)
         state <- input$state # full name of state
         county <- input$county # full name of county
         area <- input$speciesListArea # input for country, state, or county
-        if(county != "None" & area == "County") # if there is a county and it is selected
+        if(area == "County") # if there is a county and it is selected
         {
-            # location is the county
-            locationName <- paste(county, "", sep = "")
+            if (county != "None")
+            {
+                #location is the county
+                locationName <- paste(county, "", sep = "")
+            }
+            else
+            {
+                locationName <- "ERROR: No County"
+            }
         }
-        else if(state != "" & area == "State") # if the state is set and selected
+        else if(area == "State") # if the state is set and selected
         {
-            # location is the state
-            locationName <- state
+            if (county != "None")
+            {
+                #location is the state
+                locationName <- paste(state, "", sep = "")
+            }
+            else
+            {
+                locationName <- "ERROR: No State"
+            }
         }
         else if(area == "Country") # if country is selected
         {
@@ -817,7 +1263,7 @@ server <- function(input, output, session)
         else # this triggers for the case where there is not county but is selected
         {
             # sets location to error for no county
-            locationName <- "ERROR: No County"
+            locationName <- "ERROR"
         }
         # sets the string for the title
         paste(
@@ -830,399 +1276,399 @@ server <- function(input, output, session)
     
     
     # reactive script
-    # reactive search stuff goes here:
     observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
         shinyalert("Searching...", "It will take a second.") # searching pop-up
         locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
-        print(as.integer(input$speciesSearchButton))
         speciesInput <- input$species # species input
         searchRad <- input$radius # radius for the search
         amountDaysBack <- input$daysback # amount of days back the api will look back
         key <- input$apikey # key for ebird API
-        index <- commonToIndex(speciesInput) # index for the species in the speciesTibble
-        country <- input$country # full name of country
-        countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
-        state <- input$state # full name of the state
-        stateCode <- "" # ebird state code
-        county <- input$county # full name of county
-        countyCode <- "" # ebird code for the county
-        # tibble that contains the codes for the states and the full names
-        subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
-        
-        
-        if(state != "None")
+        if (key != "")
         {
-            stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
-            subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
-        }
-        else
-        {
-            subregion2Tibble <- tibble()
-        }
-        # tibble that has all the codes and names for counties in the state
-        # but it will be 0x0 if there are none
-        
-        # checks if there are counties for the given state
-        if (nrow(subregion2Tibble) > 0)
-        {
-            # if there were counties it goes through and finds the county code
-            # for the given input
-            
-            countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+            index <- commonToIndex(speciesInput) # index for the species in the speciesTibble
+            country <- input$country # full name of country
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+            state <- input$state # full name of the state
+            stateCode <- "" # ebird state code
+            county <- input$county # full name of county
+            countyCode <- "" # ebird code for the county
+            # tibble that contains the codes for the states and the full names
+            subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
             
             
-            if (!locationSet)  # if the user has not set a specific location
+            if(state != "None")
             {
-                # this gets the information on the county from rebird
-                countyInfoTibble <- ebirdregioninfo(countyCode, key = key)
-                # calculates the average latitude and longitude for the county
-                latitude <- (countyInfoTibble[[4]] + countyInfoTibble[[5]])/2
-                longitude <- (countyInfoTibble[[2]] + countyInfoTibble[[3]])/2
-            }
-            else # if the user has set a specific location
-            {
-                # sets the lat and long to the users input
-                latitude <- input$latiudeinput
-                longitude <- input$longitudeinput
-            }
-        }
-        else if (state != "None")# if there is not a county
-        {
-            if (!locationSet)  # if the user has not set a specific location
-            {
-                # gets the information on the state from rebird
-                stateInfoTibble <- ebirdregioninfo(stateCode, key = key)
-                # calculates the average latitude and longitude for the state
-                latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
-                longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
-            }
-            else # if the user has set a specific location
-            {
-                # sets the lat and long to the users input
-                latitude <- input$latiudeinput
-                longitude <- input$longitudeinput
-            }
-        }
-        else
-        {
-            if (!locationSet)  # if the user has not set a specific location
-            {
-                # gets the information on the state from rebird
-                countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
-                # calculates the average latitude and longitude for the state
-                latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
-                longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
-            }
-            else # if the user has set a specific location
-            {
-                # sets the lat and long to the users input
-                latitude <- input$latiudeinput
-                longitude <- input$longitudeinput
-            }
-        }
-        
-        
-        # output for species information
-        output$SpeciesInfoOut <- renderText({ 
-            
-            # checks if the species if valid by making sure that it was found in the species index
-            if (index != FALSE)
-            {
-                # temporary tibble that has the information of the bird
-                tempTibble <- speciesTibble[index, 1:15]
-                # species code that ebird use for look-ups
-                speciesCode <- tempTibble[[1, 3]]
-                # a list with 3 items on the closest sighting, and sightings in the radius
-                cSightingData <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
-                # HTML code that is use to render the information box body
-                HTML(
-                    # turns all the items into one string
-                    paste(
-                        sep = " ",
-                        "Common Name:", tempTibble[1, 2],
-                        "<br/>Scientific Name:", tempTibble[1, 1],
-                        "<br/>Family:", tempTibble[1, 11],
-                        "<br/>Closest Sighting Distance (km):", cSightingData[1],
-                        "<br/>Location of Closest Sighting:", cSightingData[2],
-                        "<br/>Number of Sightings in", searchRad,"km:", cSightingData[3]
-                        # end of paste
-                    )
-                    # end of HTML
-                )
-                # end of code that runs if the index is NOT FALSE
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
             }
             else
             {
-                paste("Invalid")
+                subregion2Tibble <- tibble()
             }
-            # end of species information
-        })
-        
-        # output for similar species
-        if (as.integer(input$speciesSearchButton) != searchVar)
-        {
-            output$SimilarSpeciesOut <- renderUI({
-            speciesInput <- input$species # species input
-            searchRad <- input$radius # radius input
-            key <- input$apikey # key for ebird API
+            # tibble that has all the codes and names for counties in the state
+            # but it will be 0x0 if there are none
             
-            # checks if the species is valid by checking if it exists in the species tibble
-            if(index != FALSE)
+            # checks if there are counties for the given state
+            if (nrow(subregion2Tibble) > 0)
             {
+                # if there were counties it goes through and finds the county code
+                # for the given input
                 
-                speciesFamily <- speciesTibble[index, 10][[1,1]] # ebird family code
-                # gets the indices for the birds that are in the family
-                birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
-                # checks to make sure that it worked
-                if(length(birdFamilyIndices) != 0)
+                countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                
+                
+                if (!locationSet)  # if the user has not set a specific location
                 {
-                    # list that will contain all of the common names for the birds in the same family
-                    birdFamilyName <- list() 
-                    
-                    if (county != "None") # checks if there is a county selected
-                    {
-                        # if there is get the a tibble with all the ebird codes of birds seen in that county
-                        birdsSightedTibble <- ebirdregionspecies(countyCode, key = key)
-                    }
-                    else if (state != "None")# if a county is not selected use the state instead
-                    {
-                        # get the a tibble with all the ebird codes of birds seen in that state
-                        birdsSightedTibble <- ebirdregionspecies(stateCode, key = key)
-                    }
-                    else
-                    {
-                        birdsSightedTibble <- ebirdregionspecies(countryCode, key = key)
-                    }
-                    # list that contains all the codes for birds that have sighted in the region
-                    birdsSightedList <- birdsSightedTibble[[1]]
-                    
-                    # list for the the codes of the birds in the family
-                    familyCodesList <- list()
-                    # adds the code for each bird to the list of codes
-                    for(i in 1:length(birdFamilyIndices))
-                    { 
-                        birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
-                        familyCodesList <- append(familyCodesList, birdCode)
-                        
-                        # end of for loop
-                    }
-                    
-                    # makes a new list of ones that overlap
-                    intersectionCodes <- intersect(birdsSightedList, familyCodesList)
-                    # converts each code in the overlap to the common name
-                    for(i in 1:length(intersectionCodes))
-                    {
-                        birdFamilyName <- append(birdFamilyName, ebirdCodeToCommon(intersectionCodes[[i]]))
-                    }
-                    # HTML code for the body of the similar species box
+                    # this gets the information on the county from rebird
+                    countyInfoTibble <- ebirdregioninfo(countyCode, key = key)
+                    # calculates the average latitude and longitude for the county
+                    latitude <- (countyInfoTibble[[4]] + countyInfoTibble[[5]])/2
+                    longitude <- (countyInfoTibble[[2]] + countyInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else if (state != "None")# if there is not a county
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    stateInfoTibble <- ebirdregioninfo(stateCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
+                    longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
+                    longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            
+            
+            # output for species information
+            output$SpeciesInfoOut <- renderText({ 
+                
+                # checks if the species if valid by making sure that it was found in the species index
+                if (index != FALSE)
+                {
+                    # temporary tibble that has the information of the bird
+                    tempTibble <- speciesTibble[index, 1:15]
+                    # species code that ebird use for look-ups
+                    speciesCode <- tempTibble[[1, 3]]
+                    # a list with 3 items on the closest sighting, and sightings in the radius
+                    cSightingData <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
+                    # HTML code that is use to render the information box body
                     HTML(
-                        # converts the entire list to one string with a separator
+                        # turns all the items into one string
                         paste(
-                            birdFamilyName,
-                            collapse = "<br/>",
-                            sep = " "
+                            sep = " ",
+                            "Common Name:", tempTibble[1, 2],
+                            "<br/>Scientific Name:", tempTibble[1, 1],
+                            "<br/>Family:", tempTibble[1, 11],
+                            "<br/>Closest Sighting Distance (km):", cSightingData[1],
+                            "<br/>Location of Closest Sighting:", cSightingData[2],
+                            "<br/>Number of Sightings in", searchRad,"km:", cSightingData[3]
                             # end of paste
                         )
                         # end of HTML
                     )
-                    # end of code that runs if bird family length is not 0
+                    # end of code that runs if the index is NOT FALSE
+                }
+                else
+                {
+                    paste("Invalid")
+                }
+                # end of species information
+            })
+            
+            # output for similar species
+            if (as.integer(input$speciesSearchButton) != searchVar)
+            {
+                output$SimilarSpeciesOut <- renderUI({
+                    speciesInput <- input$species # species input
+                    searchRad <- input$radius # radius input
+                    key <- input$apikey # key for ebird API
+                    
+                    # checks if the species is valid by checking if it exists in the species tibble
+                    if(index != FALSE)
+                    {
+                        
+                        speciesFamily <- speciesTibble[index, 10][[1,1]] # ebird family code
+                        # gets the indices for the birds that are in the family
+                        birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
+                        # checks to make sure that it worked
+                        if(length(birdFamilyIndices) != 0)
+                        {
+                            # list that will contain all of the common names for the birds in the same family
+                            birdFamilyName <- list() 
+                            
+                            if (county != "None") # checks if there is a county selected
+                            {
+                                # if there is get the a tibble with all the ebird codes of birds seen in that county
+                                birdsSightedTibble <- ebirdregionspecies(countyCode, key = key)
+                            }
+                            else if (state != "None")# if a county is not selected use the state instead
+                            {
+                                # get the a tibble with all the ebird codes of birds seen in that state
+                                birdsSightedTibble <- ebirdregionspecies(stateCode, key = key)
+                            }
+                            else
+                            {
+                                birdsSightedTibble <- ebirdregionspecies(countryCode, key = key)
+                            }
+                            # list that contains all the codes for birds that have sighted in the region
+                            birdsSightedList <- birdsSightedTibble[[1]]
+                            
+                            # list for the the codes of the birds in the family
+                            familyCodesList <- list()
+                            # adds the code for each bird to the list of codes
+                            for(i in 1:length(birdFamilyIndices))
+                            { 
+                                birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
+                                familyCodesList <- append(familyCodesList, birdCode)
+                                
+                                # end of for loop
+                            }
+                            
+                            # makes a new list of ones that overlap
+                            intersectionCodes <- intersect(birdsSightedList, familyCodesList)
+                            # converts each code in the overlap to the common name
+                            for(i in 1:length(intersectionCodes))
+                            {
+                                birdFamilyName <- append(birdFamilyName, ebirdCodeToCommon(intersectionCodes[[i]]))
+                            }
+                            # HTML code for the body of the similar species box
+                            HTML(
+                                # converts the entire list to one string with a separator
+                                paste(
+                                    birdFamilyName,
+                                    collapse = "<br/>",
+                                    sep = " "
+                                    # end of paste
+                                )
+                                # end of HTML
+                            )
+                            # end of code that runs if bird family length is not 0
+                        }
+                        
+                        # end of code that runs if species index is not FALSE
+                    }
+                })
+            }
+            
+            # output for sighting locations
+            output$sightingLocations <-renderUI({
+                # temporary tibble that has the information of the bird
+                tempTibble <- speciesTibble[index, 1:15]
+                # species code that ebird use for look-ups
+                speciesCode <- tempTibble[[1, 3]]
+                # list of the locations it has been sighted at
+                sightingLocationsTibble <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)[[4]]
+                sightingLocationsList <- list()
+                for (i in 1:nrow(sightingLocationsTibble))
+                {
+                    sightingLocationsList <- append(sightingLocationsList, sightingLocationsTibble[[i,1]])
                 }
                 
-                # end of code that runs if species index is not FALSE
-            }
-        })
+                HTML(
+                    paste(
+                        sightingLocationsList,
+                        collapse = "<br/>"
+                    )
+                )
+            })
+            
+            # map code
+            output$speciesMap <- renderLeaflet({
+                # temporary tibble that has the information of the bird
+                tempTibble <- speciesTibble[index, 1:15]
+                # species code that ebird use for look-ups
+                speciesCode <- tempTibble[[1, 3]]
+                latList <- c(latitude)
+                lngList <- c(longitude)
+                locationNames <- c("User")
+                typeVector <- c("user")
+                data <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
+                latList <- append(latList, data[[6]])
+                lngList <- append(lngList, data[[5]])
+                locationTibble <- data[[4]]
+                for (i in 1:nrow(locationTibble))
+                {
+                    locationNames <- append(locationNames, locationTibble[[i,1]])
+                }
+                
+                for (i in 2:length(lngList))
+                {
+                    typeVector <- append(typeVector, "sighting")
+                }
+                dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                icons <- awesomeIconList(
+                    user = makeAwesomeIcon(
+                        icon = "user",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkblue"
+                    ),
+                    sighting = makeAwesomeIcon(
+                        icon = "binoculars",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "blue",
+                        
+                    )
+                )
+                leaflet(data = dataFrame) %>%
+                    addProviderTiles(providers$Esri.WorldImagery)%>%
+                    addProviderTiles(providers$Stamen.TonerLabels) %>%
+                    addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
+            })
+            # end of reactive search
         }
-        
-        # output for sighting locations
-        output$sightingLocations <-renderUI({
-            # temporary tibble that has the information of the bird
-            tempTibble <- speciesTibble[index, 1:15]
-            # species code that ebird use for look-ups
-            speciesCode <- tempTibble[[1, 3]]
-            # list of the locations it has been sighted at
-            sightingLocationsTibble <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)[[4]]
-            sightingLocationsList <- list()
-            for (i in 1:nrow(sightingLocationsTibble))
-            {
-                sightingLocationsList <- append(sightingLocationsList, sightingLocationsTibble[[i,1]])
-            }
-            
-            HTML(
-                paste(
-                    sightingLocationsList,
-                    collapse = "<br/>"
-                )
-            )
-        })
-        
-        # map code
-        output$speciesMap <- renderLeaflet({
-            # temporary tibble that has the information of the bird
-            tempTibble <- speciesTibble[index, 1:15]
-            # species code that ebird use for look-ups
-            speciesCode <- tempTibble[[1, 3]]
-            latList <- c(latitude)
-            lngList <- c(longitude)
-            locationNames <- c("User")
-            typeVector <- c("user")
-            data <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
-            latList <- append(latList, data[[6]])
-            lngList <- append(lngList, data[[5]])
-            locationTibble <- data[[4]]
-            for (i in 1:nrow(locationTibble))
-            {
-                locationNames <- append(locationNames, locationTibble[[i,1]])
-            }
-            
-            for (i in 2:length(lngList))
-            {
-                typeVector <- append(typeVector, "sighting")
-            }
-            dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
-            icons <- awesomeIconList(
-                user = makeAwesomeIcon(
-                    icon = "user",
-                    iconColor = "black",
-                    library = "fa",
-                    markerColor = "darkblue"
-                ),
-                sighting = makeAwesomeIcon(
-                    icon = "binoculars",
-                    iconColor = "black",
-                    library = "fa",
-                    markerColor = "blue",
-                    
-                )
-            )
-            leaflet(data = dataFrame) %>%
-                addProviderTiles(providers$Esri.WorldImagery)%>%
-                addProviderTiles(providers$Stamen.TonerLabels) %>%
-                addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
-        })
-        # end of reactive search
-        
         searchVar <<- as.integer(input$speciesSearchButton)
     })
     
     # species tab
-    # code that displays all the species that have been sighted in the region
     output$speciesList <- renderUI({
         key <- input$apikey # key for the ebird API
-        
-        
-        country <- input$country # full name of the country
-        countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
-        state <- input$state # full name of the state
-        stateCode <- "" # ebird state code
-        county <- input$county # full name of county
-        countyCode <- "" # ebird county code
-        # tibble that contains all the state codes and full names for the country
-        subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
-        
-        # this block of code finds the ebird code for the state
-        if (state != "None")
+        if (key != "")
         {
-            stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
-            subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
-        }
-        else 
-        {
-            subregion2Tibble <- tibble()
-        }
-        # tibble that contains all the county codes and full names for the state
-        
-        # this block of code finds the ebird code for the county if there are any counties in the state
-        if (nrow(subregion2Tibble) != 0)
-        {
-            # if there were counties it goes through and finds the county code
-            # for the given input
-            countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+            country <- input$country # full name of the country
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+            state <- input$state # full name of the state
+            stateCode <- "" # ebird state code
+            county <- input$county # full name of county
+            countyCode <- "" # ebird county code
+            # tibble that contains all the state codes and full names for the country
+            subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
             
-        }
-        
-        
-        selection <- input$speciesListArea # selection for the area(County, State, Country)
-        
-        if (input$speciesDateSwitch == FALSE)
-        {
-            speciesCodeList <<- c()
-            if(county != "None" & selection == "County") # if there is a county and it is selected
+            # this block of code finds the ebird code for the state
+            if (state != "None")
             {
-                # set the code list to the species in the county
-                speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
             }
-            else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+            else 
             {
-                # set the code list to the species in the state
-                speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
+                subregion2Tibble <- tibble()
             }
-            else if(selection == "Country") # if the selection is country
-            {
-                # set the code list to the species in the country
-                speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
-            }
+            # tibble that contains all the county codes and full names for the state
             
-            # converts all of the codes to common names
-            if (length(speciesCodeList) != 0)
+            # this block of code finds the ebird code for the county if there are any counties in the state
+            if (nrow(subregion2Tibble) != 0)
             {
-                for (i in 1:length(speciesCodeList))
-                {
-                    speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
-                }
-            }
-            speciesCodeList <<- sort(speciesCodeList)
-        }
-        else
-        {
-            daysBack <- input$daysback
-            speciesCodeList <<- list()
-            
-            if(county != "None" & selection == "County") # if there is a county and it is selected
-            {
+                # if there were counties it goes through and finds the county code
+                # for the given input
+                countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
                 
-                for (i in 0:daysBack)
-                {
-                    searchDate <- as.Date(currentDate) - i
-                    responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
-                    dateList <- as.list(responseTibble$comName)
-                    speciesCodeList <<- union(speciesCodeList, dateList)
-                }
-            }
-            else if(stateCode != "" & selection == "State") # if there is a state and it is selected
-            {
-                for (i in 0:daysBack)
-                {
-                    searchDate <- as.Date(currentDate) - i
-                    responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
-                    dateList <- as.list(responseTibble$comName)
-                    speciesCodeList <<- union(speciesCodeList, dateList)
-                }
-            }
-            else if(selection == "Country") # if the selection is country
-            {
-                for (i in 0:daysBack)
-                {
-                    searchDate <- as.Date(currentDate) - i
-                    responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
-                    dateList <- as.list(responseTibble$comName)
-                    speciesCodeList <<- union(speciesCodeList, dateList)
-                }
             }
             
-            speciesCodeList <<- sort(unlist(speciesCodeList))
             
-        }
-        
-        
-        
-        # HTML code for the body of the species list box
-        HTML(
-            # turns the entire list into one string with a separator
-            paste(
-                speciesCodeList,
-                colapase = "<br/>"
+            selection <- input$speciesListArea # selection for the area(County, State, Country)
+            
+            if (input$speciesDateSwitch == FALSE)
+            {
+                speciesCodeList <<- c()
+                if(county != "None" & selection == "County") # if there is a county and it is selected
+                {
+                    # set the code list to the species in the county
+                    speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
+                }
+                else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                {
+                    # set the code list to the species in the state
+                    speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
+                }
+                else if(selection == "Country") # if the selection is country
+                {
+                    # set the code list to the species in the country
+                    speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
+                }
+                
+                # converts all of the codes to common names
+                if (length(speciesCodeList) != 0)
+                {
+                    for (i in 1:length(speciesCodeList))
+                    {
+                        speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
+                    }
+                }
+                speciesCodeList <<- sort(speciesCodeList)
+            }
+            else
+            {
+                daysBack <- input$daysback
+                speciesCodeList <<- list()
+                
+                if(county != "None" & selection == "County") # if there is a county and it is selected
+                {
+                    
+                    for (i in 0:daysBack)
+                    {
+                        searchDate <- as.Date(currentDate) - i
+                        responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
+                        dateList <- as.list(responseTibble$comName)
+                        speciesCodeList <<- union(speciesCodeList, dateList)
+                    }
+                }
+                else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                {
+                    for (i in 0:daysBack)
+                    {
+                        searchDate <- as.Date(currentDate) - i
+                        responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
+                        dateList <- as.list(responseTibble$comName)
+                        speciesCodeList <<- union(speciesCodeList, dateList)
+                    }
+                }
+                else if(selection == "Country") # if the selection is country
+                {
+                    for (i in 0:daysBack)
+                    {
+                        searchDate <- as.Date(currentDate) - i
+                        responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
+                        dateList <- as.list(responseTibble$comName)
+                        speciesCodeList <<- union(speciesCodeList, dateList)
+                    }
+                }
+                
+                speciesCodeList <<- sort(unlist(speciesCodeList))
+                
+            }
+            
+            
+            
+            # HTML code for the body of the species list box
+            HTML(
+                # turns the entire list into one string with a separator
+                paste(
+                    speciesCodeList,
+                    colapase = "<br/>"
+                )
             )
-        )
+        }
     })
     
     # quiz tab
@@ -1265,6 +1711,116 @@ server <- function(input, output, session)
                          
                          
                          # change bird
+                         if (length(speciesCodeList) == 0)
+                         {
+                             key <- input$apikey # key for the ebird API
+                             if (key != "")
+                             {
+                                 
+                                 country <- input$country # full name of the country
+                                 countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+                                 state <- input$state # full name of the state
+                                 stateCode <- "" # ebird state code
+                                 county <- input$county # full name of county
+                                 countyCode <- "" # ebird county code
+                                 # tibble that contains all the state codes and full names for the country
+                                 subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+                                 
+                                 # this block of code finds the ebird code for the state
+                                 if (state != "None")
+                                 {
+                                     stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                                     subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+                                 }
+                                 else 
+                                 {
+                                     subregion2Tibble <- tibble()
+                                 }
+                                 # tibble that contains all the county codes and full names for the state
+                                 
+                                 # this block of code finds the ebird code for the county if there are any counties in the state
+                                 if (nrow(subregion2Tibble) != 0)
+                                 {
+                                     # if there were counties it goes through and finds the county code
+                                     # for the given input
+                                     countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                                     
+                                 }
+                                 
+                                 
+                                 selection <- input$speciesListArea # selection for the area(County, State, Country)
+                                 
+                                 if (input$speciesDateSwitch == FALSE)
+                                 {
+                                     speciesCodeList <<- c()
+                                     if(county != "None" & selection == "County") # if there is a county and it is selected
+                                     {
+                                         # set the code list to the species in the county
+                                         speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
+                                     }
+                                     else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                                     {
+                                         # set the code list to the species in the state
+                                         speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
+                                     }
+                                     else if(selection == "Country") # if the selection is country
+                                     {
+                                         # set the code list to the species in the country
+                                         speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
+                                     }
+                                     
+                                     # converts all of the codes to common names
+                                     if (length(speciesCodeList) != 0)
+                                     {
+                                         for (i in 1:length(speciesCodeList))
+                                         {
+                                             speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
+                                         }
+                                     }
+                                     speciesCodeList <<- sort(speciesCodeList)
+                                 }
+                                 else
+                                 {
+                                     daysBack <- input$daysback
+                                     speciesCodeList <<- list()
+                                     
+                                     if(county != "None" & selection == "County") # if there is a county and it is selected
+                                     {
+                                         
+                                         for (i in 0:daysBack)
+                                         {
+                                             searchDate <- as.Date(currentDate) - i
+                                             responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
+                                             dateList <- as.list(responseTibble$comName)
+                                             speciesCodeList <<- union(speciesCodeList, dateList)
+                                         }
+                                     }
+                                     else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                                     {
+                                         for (i in 0:daysBack)
+                                         {
+                                             searchDate <- as.Date(currentDate) - i
+                                             responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
+                                             dateList <- as.list(responseTibble$comName)
+                                             speciesCodeList <<- union(speciesCodeList, dateList)
+                                         }
+                                     }
+                                     else if(selection == "Country") # if the selection is country
+                                     {
+                                         for (i in 0:daysBack)
+                                         {
+                                             searchDate <- as.Date(currentDate) - i
+                                             responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
+                                             dateList <- as.list(responseTibble$comName)
+                                             speciesCodeList <<- union(speciesCodeList, dateList)
+                                         }
+                                     }
+                                     
+                                     speciesCodeList <<- sort(unlist(speciesCodeList))
+                                     
+                                 }
+                             }
+                         }
                          speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
                          choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
                          choices <- sample(choices)
@@ -1304,9 +1860,7 @@ server <- function(input, output, session)
                              format
                          )
                          cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
-                         print(cite)
                          author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
-                         print(author)
                          if (author == "")
                          {
                              author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
@@ -1317,12 +1871,12 @@ server <- function(input, output, session)
           and API services via
           <a href="https://www.flickr.com" target="_blank">Flickr</a>
           </p>')
+                         
                      })
                  })
     
     observeEvent(c(input$resetQuiz),
                  {
-                     print(input$tabs)
                      correct <<- 0
                      incorrect <<- 0
                      output$quizScore <- renderText({
@@ -1334,6 +1888,116 @@ server <- function(input, output, session)
                          
                          
                          # change bird
+                         if (length(speciesCodeList) == 0)
+                         {
+                             key <- input$apikey # key for the ebird API
+                             
+                             if (key != "")
+                             {
+                                 country <- input$country # full name of the country
+                                 countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+                                 state <- input$state # full name of the state
+                                 stateCode <- "" # ebird state code
+                                 county <- input$county # full name of county
+                                 countyCode <- "" # ebird county code
+                                 # tibble that contains all the state codes and full names for the country
+                                 subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+                                 
+                                 # this block of code finds the ebird code for the state
+                                 if (state != "None")
+                                 {
+                                     stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                                     subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+                                 }
+                                 else 
+                                 {
+                                     subregion2Tibble <- tibble()
+                                 }
+                                 # tibble that contains all the county codes and full names for the state
+                                 
+                                 # this block of code finds the ebird code for the county if there are any counties in the state
+                                 if (nrow(subregion2Tibble) != 0)
+                                 {
+                                     # if there were counties it goes through and finds the county code
+                                     # for the given input
+                                     countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                                     
+                                 }
+                                 
+                                 
+                                 selection <- input$speciesListArea # selection for the area(County, State, Country)
+                                 
+                                 if (input$speciesDateSwitch == FALSE)
+                                 {
+                                     speciesCodeList <<- c()
+                                     if(county != "None" & selection == "County") # if there is a county and it is selected
+                                     {
+                                         # set the code list to the species in the county
+                                         speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
+                                     }
+                                     else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                                     {
+                                         # set the code list to the species in the state
+                                         speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
+                                     }
+                                     else if(selection == "Country") # if the selection is country
+                                     {
+                                         # set the code list to the species in the country
+                                         speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
+                                     }
+                                     
+                                     # converts all of the codes to common names
+                                     if (length(speciesCodeList) != 0)
+                                     {
+                                         for (i in 1:length(speciesCodeList))
+                                         {
+                                             speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
+                                         }
+                                     }
+                                     speciesCodeList <<- sort(speciesCodeList)
+                                 }
+                                 else
+                                 {
+                                     daysBack <- input$daysback
+                                     speciesCodeList <<- list()
+                                     
+                                     if(county != "None" & selection == "County") # if there is a county and it is selected
+                                     {
+                                         
+                                         for (i in 0:daysBack)
+                                         {
+                                             searchDate <- as.Date(currentDate) - i
+                                             responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
+                                             dateList <- as.list(responseTibble$comName)
+                                             speciesCodeList <<- union(speciesCodeList, dateList)
+                                         }
+                                     }
+                                     else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                                     {
+                                         for (i in 0:daysBack)
+                                         {
+                                             searchDate <- as.Date(currentDate) - i
+                                             responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
+                                             dateList <- as.list(responseTibble$comName)
+                                             speciesCodeList <<- union(speciesCodeList, dateList)
+                                         }
+                                     }
+                                     else if(selection == "Country") # if the selection is country
+                                     {
+                                         for (i in 0:daysBack)
+                                         {
+                                             searchDate <- as.Date(currentDate) - i
+                                             responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
+                                             dateList <- as.list(responseTibble$comName)
+                                             speciesCodeList <<- union(speciesCodeList, dateList)
+                                         }
+                                     }
+                                     
+                                     speciesCodeList <<- sort(unlist(speciesCodeList))
+                                     
+                                 }
+                             }
+                         }
                          speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
                          choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
                          choices <- sample(choices)
@@ -1374,9 +2038,7 @@ server <- function(input, output, session)
                          )
                          
                          cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
-                         print(cite)
                          author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
-                         print(author)
                          if (author == "")
                          {
                              author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
@@ -1389,6 +2051,307 @@ server <- function(input, output, session)
           </p>')
                      })
                  })
+    
+    #notable sightings map
+    observeEvent(input$notableMapReload, {
+        
+        key <- input$apikey
+        
+        if (key != "")
+        {
+            locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
+            country <- input$country # full name of country
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+            state <- input$state # full name of the state
+            stateCode <- "" # ebird state code
+            county <- input$county # full name of county
+            countyCode <- "" # ebird code for the county
+            # tibble that contains the codes for the states and the full names
+            subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+            
+            
+            if(state != "None")
+            {
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+            }
+            else
+            {
+                subregion2Tibble <- tibble()
+            }
+            # tibble that has all the codes and names for counties in the state
+            # but it will be 0x0 if there are none
+            
+            # checks if there are counties for the given state
+            if (nrow(subregion2Tibble) > 0)
+            {
+                # if there were counties it goes through and finds the county code
+                # for the given input
+                
+                countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                
+                
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # this gets the information on the county from rebird
+                    countyInfoTibble <- ebirdregioninfo(countyCode, key = key)
+                    # calculates the average latitude and longitude for the county
+                    latitude <- (countyInfoTibble[[4]] + countyInfoTibble[[5]])/2
+                    longitude <- (countyInfoTibble[[2]] + countyInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else if (state != "None")# if there is not a county
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    stateInfoTibble <- ebirdregioninfo(stateCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
+                    longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
+                    longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            
+            
+            notableTibble <- ebirdnotable(lat = latitude, lng = longitude, key = key, dist = input$radius, back = input$daysBack)
+            latList <- c(latitude)
+            lngList <- c(longitude)
+            latList <- append(latList, notableTibble$lat + runif(1, -0.002, 0.002))
+            lngList <- append(lngList, notableTibble$lng + runif(1, -0.002, 0.002))
+            locationNames <- c("User")
+            locationNames <- append(locationNames, paste0(notableTibble$comName, " : ", notableTibble$locName))
+            typeVector <- "user"
+            
+            for (i in 2:length(lngList))
+            {
+                typeVector <- append(typeVector, "sighting")
+            }
+            # data frame with the information
+            dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+            icons <- awesomeIconList(
+                user = makeAwesomeIcon(
+                    icon = "user",
+                    iconColor = "black",
+                    library = "fa",
+                    markerColor = "darkblue"
+                ),
+                sighting = makeAwesomeIcon(
+                    icon = "binoculars",
+                    iconColor = "black",
+                    library = "fa",
+                    markerColor = "blue",
+                    
+                )
+            )
+        }
+        output$notableMap <- renderLeaflet({
+            leaflet(data = dataFrame) %>%
+                addProviderTiles(providers$Esri.WorldImagery)%>%
+                addProviderTiles(providers$Stamen.TonerLabels) %>%
+                addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
+            
+        })
+        output$notableList <- renderUI({
+            
+            notableNames <- as.list(sort(locationNames[2:length(locationNames)]))
+            HTML(
+                # converts the entire list to one string with a separator
+                paste(
+                    notableNames,
+                    collapse = "<br/>",
+                    sep = " "
+                    # end of paste
+                )
+                # end of HTML
+            )
+        })
+        
+    })
+    
+    
+    observeEvent(input$targetMapReload, {
+        
+        key <- input$apikey
+        
+        if (key != "")
+        {
+            locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
+            country <- input$country # full name of country
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+            state <- input$state # full name of the state
+            stateCode <- "" # ebird state code
+            county <- input$county # full name of county
+            countyCode <- "" # ebird code for the county
+            # tibble that contains the codes for the states and the full names
+            subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+            
+            
+            if(state != "None")
+            {
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+            }
+            else
+            {
+                subregion2Tibble <- tibble()
+            }
+            # tibble that has all the codes and names for counties in the state
+            # but it will be 0x0 if there are none
+            
+            # checks if there are counties for the given state
+            if (nrow(subregion2Tibble) > 0)
+            {
+                # if there were counties it goes through and finds the county code
+                # for the given input
+                
+                countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                
+                
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # this gets the information on the county from rebird
+                    countyInfoTibble <- ebirdregioninfo(countyCode, key = key)
+                    # calculates the average latitude and longitude for the county
+                    latitude <- (countyInfoTibble[[4]] + countyInfoTibble[[5]])/2
+                    longitude <- (countyInfoTibble[[2]] + countyInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else if (state != "None")# if there is not a county
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    stateInfoTibble <- ebirdregioninfo(stateCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
+                    longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
+                    longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            
+            
+            nearbySightingsDF <- nearbyObs(key = key, lat = latitude, lng = longitude, dist = input$radius, back = input$daysback)[]
+            lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
+            alreadySighted <- nearbySightingsDF$comName %in% lifeList
+            targetDF <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
+            for (i in 1:length(alreadySighted))
+            {
+                if (!alreadySighted[i])
+                {
+                    targetDF <- rbind(targetDF, nearbySightingsDF[i,])
+                }
+            }
+
+            latList <- c(latitude)
+            lngList <- c(longitude)
+            latList <- append(latList, targetDF$lat + runif(1, -0.002, 0.002))
+            lngList <- append(lngList, targetDF$lng + runif(1, -0.002, 0.002))
+            locationNames <- c("User")
+            locationNames <- append(locationNames, paste0(targetDF$comName, " : ", targetDF$locName))
+            typeVector <- "user"
+
+            for (i in 2:length(lngList))
+            {
+                typeVector <- append(typeVector, "sighting")
+            }
+            # data frame with the information
+            dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+            icons <- awesomeIconList(
+                user = makeAwesomeIcon(
+                    icon = "user",
+                    iconColor = "black",
+                    library = "fa",
+                    markerColor = "darkblue"
+                ),
+                sighting = makeAwesomeIcon(
+                    icon = "binoculars",
+                    iconColor = "black",
+                    library = "fa",
+                    markerColor = "blue",
+                    
+                )
+            )
+        }
+        output$targetMap <- renderLeaflet({
+            leaflet(data = dataFrame) %>%
+                addProviderTiles(providers$Esri.WorldImagery)%>%
+                addProviderTiles(providers$Stamen.TonerLabels) %>%
+                addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
+            
+        })
+        output$targetList <- renderUI({
+            
+            notableNames <- as.list(sort(locationNames[2:length(locationNames)]))
+            HTML(
+                # converts the entire list to one string with a separator
+                paste(
+                    notableNames,
+                    collapse = "<br/>",
+                    sep = " "
+                    # end of paste
+                )
+                # end of HTML
+            )
+        })
+        
+    })
 }
 
 # creates the app
