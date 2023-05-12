@@ -22,7 +22,6 @@ source("Ui/Ui_Settings.R", local = TRUE)
 source("Ui/Ui_SpeciesList.R", local = TRUE)
 source("Ui/Ui_SpeciesMap.R", local = TRUE)
 source("Ui/Ui_Quiz.R", local = TRUE)
-source("Ui/Ui_Notable.R", local = TRUE)
 ui <- function()
 {
     dashboardPage(
@@ -52,7 +51,7 @@ ui <- function()
                 menuItem("Species", icon = icon("feather", lib = "font-awesome"),
                     menuSubItem("Species List", tabName = "species", icon = icon("feather", lib = "font-awesome")),
                     menuSubItem("Notable sightings", tabName = "notableMapTab", icon = icon("circle-exclamation", lib = "font-awesome")),
-                    menuSubItem("Target Species", tabName = "targetSpecies", icon = icon("plus", lib = "font-awesome"))
+                    menuSubItem("Target Map", tabName = "targetMapTab", icon = icon("plus", lib = "font-awesome"))
                 ),
                 menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
 
@@ -92,12 +91,11 @@ ui <- function()
                 
                 QuizTab,
                 
-                NotableTab,
-                
                 tabItem(
-                    tabName = "targetSpecies",
+                    tabName = "notableMapTab",
                     box(
-                        title = "Target Species",
+                        # box appearance settings 
+                        title = "Notable Sightings",
                         background = "black",
                         collapsible = TRUE,
                         solidHeader = TRUE,
@@ -106,12 +104,37 @@ ui <- function()
                         status = "primary",
                         
                         # sets map height to height of window
-                        tags$style(type = "text/css", "#speciesMap {height: calc(100vh - 80px) !important;}"),
+                        tags$style(type = "text/css", "#notableMap {height: calc(100vh - 80px) !important;}"),
                         # map for displaying locations the species been sighted at
-                        actionButton("targetMapReload", label = "Reload"),
-                        leafletOutput("targetMap"), 
-                        uiOutput("targetList")
+                        actionButton("notableMapReload", label = "Reload"),
+                        leafletOutput("notableMap"), 
+                        uiOutput("notableList")
+                        # end of map box
                     )
+                    # end of map tab
+                ),
+                
+                tabItem(
+                	tabName = "targetMapTab",
+                	box(
+                		# box appearance settings 
+                		title = "Target Birds",
+                		background = "black",
+                		collapsible = TRUE,
+                		solidHeader = TRUE,
+                		width = 12,
+                		height = 24,
+                		status = "primary",
+                		
+                		# sets map height to height of window
+                		tags$style(type = "text/css", "#targetMap {height: calc(100vh - 80px) !important;}"),
+                		# map for displaying locations the species been sighted at
+                		actionButton("targetMapReload", label = "Reload"),
+                		leafletOutput("targetMap"), 
+                		uiOutput("targetList")
+                		# end of map box
+                	)
+                	# end of map tab
                 )
                 
                 

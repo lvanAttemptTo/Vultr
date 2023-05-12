@@ -35,7 +35,18 @@ library("DBI")
 library("lubridate")
 
 
+# custom ebird API library
+source("Pelican/Pelican.R")
 
+# import for ebird life list
+
+# ebirdLifeList <- read.csv("ebird_world_life_list.csv")$Common.Name
+# tempStr <- ""
+# for (i in ebirdLifeList)
+# {
+#     tempStr <- paste0(tempStr, ";", i)
+# }
+# print(tempStr)
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
 
 currentDate <- Sys.Date()
