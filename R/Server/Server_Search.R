@@ -8,7 +8,7 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
     key <- input$apikey # key for ebird API
     if (key != "")
     {
-        index <- commonToIndex(speciesInput) # index for the species in the speciesTibble
+        index <- commonToIndex(tolower(speciesInput)) # index for the species in the speciesTibble
         country <- input$country # full name of country
         countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
         state <- input$state # full name of the state
@@ -90,185 +90,206 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             }
         }
         
-        
-        # output for species information
-        output$SpeciesInfoOut <- renderText({ 
+        if (!is.na(index))
+        {
+            # output for species information
+            output$SpeciesInfoOut <- renderText({ 
+                
+                # checks if the species if valid by making sure that it was found in the species index
+                if (!is.na(index))
+                {
+                    # temporary tibble that has the information of the bird
+                    tempTibble <- speciesTibble[index, 1:15]
+                    # species code that ebird use for look-ups
+                    speciesCode <- tempTibble[[1, 3]]
+                    # a list with 3 items on the closest sighting, and sightings in the radius
+                    cSightingData <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
+                    # HTML code that is use to render the information box body
+                    HTML(
+                        # turns all the items into one string
+                        paste(
+                            sep = " ",
+                            "Common Name:", tempTibble[1, 2],
+                            "<br/>Scientific Name:", tempTibble[1, 1],
+                            "<br/>Family:", tempTibble[1, 11],
+                            "<br/>Closest Sighting Distance (km):", cSightingData[1],
+                            "<br/>Location of Closest Sighting:", cSightingData[2],
+                            "<br/>Number of Sightings in", searchRad,"km:", cSightingData[3]
+                            # end of paste
+                        )
+                        # end of HTML
+                    )
+                    # end of code that runs if the index is NOT FALSE
+                }
+                else
+                {
+                    paste("Invalid")
+                }
+                # end of species information
+            })
             
-            # checks if the species if valid by making sure that it was found in the species index
+            # output for similar species
             if (index != FALSE)
             {
+            if (as.integer(input$speciesSearchButton) != searchVar)
+            {
+                output$SimilarSpeciesOut <- renderUI({
+                    speciesInput <- input$species # species input
+                    searchRad <- input$radius # radius input
+                    key <- input$apikey # key for ebird API
+                    
+                    # checks if the species is valid by checking if it exists in the species tibble
+                    if(index != FALSE)
+                    {
+                        
+                        speciesFamily <- speciesTibble[index, 10][[1,1]] # ebird family code
+                        # gets the indices for the birds that are in the family
+                        birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
+                        # checks to make sure that it worked
+                        if(length(birdFamilyIndices) != 0)
+                        {
+                            # list that will contain all of the common names for the birds in the same family
+                            birdFamilyName <- list() 
+                            
+                            if (county != "None") # checks if there is a county selected
+                            {
+                                # if there is get the a tibble with all the ebird codes of birds seen in that county
+                                birdsSightedTibble <- ebirdregionspecies(countyCode, key = key)
+                            }
+                            else if (state != "None")# if a county is not selected use the state instead
+                            {
+                                # get the a tibble with all the ebird codes of birds seen in that state
+                                birdsSightedTibble <- ebirdregionspecies(stateCode, key = key)
+                            }
+                            else
+                            {
+                                birdsSightedTibble <- ebirdregionspecies(countryCode, key = key)
+                            }
+                            # list that contains all the codes for birds that have sighted in the region
+                            birdsSightedList <- birdsSightedTibble[[1]]
+                            
+                            # list for the the codes of the birds in the family
+                            familyCodesList <- list()
+                            # adds the code for each bird to the list of codes
+                            for(i in 1:length(birdFamilyIndices))
+                            { 
+                                birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
+                                familyCodesList <- append(familyCodesList, birdCode)
+                                
+                                # end of for loop
+                            }
+                            
+                            # makes a new list of ones that overlap
+                            intersectionCodes <- intersect(birdsSightedList, familyCodesList)
+                            # converts each code in the overlap to the common name
+                            for(i in 1:length(intersectionCodes))
+                            {
+                                birdFamilyName <- append(birdFamilyName, ebirdCodeToCommon(intersectionCodes[[i]]))
+                            }
+                            # HTML code for the body of the similar species box
+                            HTML(
+                                # converts the entire list to one string with a separator
+                                paste(
+                                    birdFamilyName,
+                                    collapse = "<br/>",
+                                    sep = " "
+                                    # end of paste
+                                )
+                                # end of HTML
+                            )
+                            # end of code that runs if bird family length is not 0
+                        }
+                        
+                        # end of code that runs if species index is not FALSE
+                    }
+                })
+            }
+            
+            # output for sighting locations
+            output$sightingLocations <-renderUI({
                 # temporary tibble that has the information of the bird
                 tempTibble <- speciesTibble[index, 1:15]
                 # species code that ebird use for look-ups
                 speciesCode <- tempTibble[[1, 3]]
-                # a list with 3 items on the closest sighting, and sightings in the radius
-                cSightingData <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
-                # HTML code that is use to render the information box body
-                HTML(
-                    # turns all the items into one string
-                    paste(
-                        sep = " ",
-                        "Common Name:", tempTibble[1, 2],
-                        "<br/>Scientific Name:", tempTibble[1, 1],
-                        "<br/>Family:", tempTibble[1, 11],
-                        "<br/>Closest Sighting Distance (km):", cSightingData[1],
-                        "<br/>Location of Closest Sighting:", cSightingData[2],
-                        "<br/>Number of Sightings in", searchRad,"km:", cSightingData[3]
-                        # end of paste
-                    )
-                    # end of HTML
-                )
-                # end of code that runs if the index is NOT FALSE
-            }
-            else
-            {
-                paste("Invalid")
-            }
-            # end of species information
-        })
-        
-        # output for similar species
-        if (as.integer(input$speciesSearchButton) != searchVar)
-        {
-            output$SimilarSpeciesOut <- renderUI({
-                speciesInput <- input$species # species input
-                searchRad <- input$radius # radius input
-                key <- input$apikey # key for ebird API
-                
-                # checks if the species is valid by checking if it exists in the species tibble
-                if(index != FALSE)
+                # list of the locations it has been sighted at
+                sightingLocationsTibble <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
+                if (length(sightingLocationsTibble) >= 4)
                 {
-                    
-                    speciesFamily <- speciesTibble[index, 10][[1,1]] # ebird family code
-                    # gets the indices for the birds that are in the family
-                    birdFamilyIndices  <- searchSpeciesTibble(10, speciesFamily)
-                    # checks to make sure that it worked
-                    if(length(birdFamilyIndices) != 0)
+                    sightingLocationsTibble <- sightingLocationsTibble[[4]]
+                    sightingLocationsList <- list()
+                    for (i in 1:nrow(sightingLocationsTibble))
                     {
-                        # list that will contain all of the common names for the birds in the same family
-                        birdFamilyName <- list() 
-                        
-                        if (county != "None") # checks if there is a county selected
-                        {
-                            # if there is get the a tibble with all the ebird codes of birds seen in that county
-                            birdsSightedTibble <- ebirdregionspecies(countyCode, key = key)
-                        }
-                        else if (state != "None")# if a county is not selected use the state instead
-                        {
-                            # get the a tibble with all the ebird codes of birds seen in that state
-                            birdsSightedTibble <- ebirdregionspecies(stateCode, key = key)
-                        }
-                        else
-                        {
-                            birdsSightedTibble <- ebirdregionspecies(countryCode, key = key)
-                        }
-                        # list that contains all the codes for birds that have sighted in the region
-                        birdsSightedList <- birdsSightedTibble[[1]]
-                        
-                        # list for the the codes of the birds in the family
-                        familyCodesList <- list()
-                        # adds the code for each bird to the list of codes
-                        for(i in 1:length(birdFamilyIndices))
-                        { 
-                            birdCode <- speciesTibble[birdFamilyIndices [[i]],3][[1,1]]
-                            familyCodesList <- append(familyCodesList, birdCode)
-                            
-                            # end of for loop
-                        }
-                        
-                        # makes a new list of ones that overlap
-                        intersectionCodes <- intersect(birdsSightedList, familyCodesList)
-                        # converts each code in the overlap to the common name
-                        for(i in 1:length(intersectionCodes))
-                        {
-                            birdFamilyName <- append(birdFamilyName, ebirdCodeToCommon(intersectionCodes[[i]]))
-                        }
-                        # HTML code for the body of the similar species box
-                        HTML(
-                            # converts the entire list to one string with a separator
-                            paste(
-                                birdFamilyName,
-                                collapse = "<br/>",
-                                sep = " "
-                                # end of paste
-                            )
-                            # end of HTML
-                        )
-                        # end of code that runs if bird family length is not 0
+                        sightingLocationsList <- append(sightingLocationsList, sightingLocationsTibble[[i,1]])
                     }
                     
-                    # end of code that runs if species index is not FALSE
+                    HTML(
+                        paste(
+                            sightingLocationsList,
+                            collapse = "<br/>"
+                        )
+                    )
                 }
             })
-        }
-        
-        # output for sighting locations
-        output$sightingLocations <-renderUI({
-            # temporary tibble that has the information of the bird
-            tempTibble <- speciesTibble[index, 1:15]
-            # species code that ebird use for look-ups
-            speciesCode <- tempTibble[[1, 3]]
-            # list of the locations it has been sighted at
-            sightingLocationsTibble <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)[[4]]
-            sightingLocationsList <- list()
-            for (i in 1:nrow(sightingLocationsTibble))
-            {
-                sightingLocationsList <- append(sightingLocationsList, sightingLocationsTibble[[i,1]])
-            }
             
-            HTML(
-                paste(
-                    sightingLocationsList,
-                    collapse = "<br/>"
-                )
-            )
-        })
-        
-        # map code
-        output$speciesMap <- renderLeaflet({
-            # temporary tibble that has the information of the bird
-            tempTibble <- speciesTibble[index, 1:15]
-            # species code that ebird use for look-ups
-            speciesCode <- tempTibble[[1, 3]]
-            latList <- c(latitude)
-            lngList <- c(longitude)
-            locationNames <- c("User")
-            typeVector <- c("user")
-            data <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
-            latList <- append(latList, data[[6]])
-            lngList <- append(lngList, data[[5]])
-            locationTibble <- data[[4]]
-            for (i in 1:nrow(locationTibble))
-            {
-                locationNames <- append(locationNames, locationTibble[[i,1]])
-            }
-            
-            for (i in 2:length(lngList))
-            {
-                typeVector <- append(typeVector, "sighting")
-            }
-            dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
-            icons <- awesomeIconList(
-                user = makeAwesomeIcon(
-                    icon = "user",
-                    iconColor = "black",
-                    library = "fa",
-                    markerColor = "darkblue"
-                ),
-                sighting = makeAwesomeIcon(
-                    icon = "binoculars",
-                    iconColor = "black",
-                    library = "fa",
-                    markerColor = "blue",
+            # map code
+            output$speciesMap <- renderLeaflet({
+                # temporary tibble that has the information of the bird
+                tempTibble <- speciesTibble[index, 1:15]
+                # species code that ebird use for look-ups
+                speciesCode <- tempTibble[[1, 3]]
+                latList <- c(latitude)
+                lngList <- c(longitude)
+                locationNames <- c("User")
+                typeVector <- c("user")
+                data <- findClosestSighting(speciesCode, searchRad, key, latitude, longitude, amountDaysBack)
+                if (length(data) >= 4)
+                {
+                    latList <- append(latList, data[[6]])
+                    lngList <- append(lngList, data[[5]])
+                    locationTibble <- data[[4]]
+                    for (i in 1:nrow(locationTibble))
+                    {
+                        locationNames <- append(locationNames, locationTibble[[i,1]])
+                    }
                     
-                )
-            )
-            leaflet(data = dataFrame) %>%
-                addProviderTiles(providers$Esri.WorldImagery)%>%
-                addProviderTiles(providers$Stamen.TonerLabels) %>%
-                addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
-        })
-        # end of reactive search
+                    for (i in 2:length(lngList))
+                    {
+                        typeVector <- append(typeVector, "sighting")
+                    }
+                    dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                    icons <- awesomeIconList(
+                        user = makeAwesomeIcon(
+                            icon = "user",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkblue"
+                        ),
+                        sighting = makeAwesomeIcon(
+                            icon = "binoculars",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "blue",
+                            
+                        )
+                    )
+                    leaflet(data = dataFrame) %>%
+                        addProviderTiles(providers$Esri.WorldImagery)%>%
+                        addProviderTiles(providers$Stamen.TonerLabels) %>%
+                        addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
+                }
+            })
+            
+            # end of reactive search
+            }
+        }
+        else
+        {
+            shinyalert("Invalid Species", "")
+        }
+    }
+    else
+    {
+        shinyalert("No API Key Set", "Please Set It In Settings")
     }
     searchVar <<- as.integer(input$speciesSearchButton)
 })

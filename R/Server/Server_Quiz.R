@@ -5,32 +5,35 @@ observeEvent(input$quizSubmit,
         correct <<- 0
         incorrect <<- 0
     }
-    
-    output$quizScore <- renderText({
-        # check previous answer
-        if (as.integer(input$quizSubmit) != quizSubmit)
-        {
-            quizSubmit <<- as.integer(input$quizSubmit)
-            guess <- input$guess
-            
-            if(guess == TRUE)
+    key <- input$apikey # key for the ebird API
+    if (key != "")
+    {
+        output$quizScore <- renderText({
+            # check previous answer
+            if (as.integer(input$quizSubmit) != quizSubmit)
             {
-                correct <<- correct + 1
+                quizSubmit <<- as.integer(input$quizSubmit)
+                guess <- input$guess
+                
+                if(guess == TRUE)
+                {
+                    correct <<- correct + 1
+                }
+                else
+                {
+                    incorrect <<- incorrect + 1
+                }
+                
+                # display score
+                c("Correct: ", correct, " Incorrect: ", incorrect)
             }
             else
             {
-                incorrect <<- incorrect + 1
+                c("Correct: ", correct, " Incorrect: ", incorrect)
+                
             }
-            
-            # display score
-            c("Correct: ", correct, " Incorrect: ", incorrect)
-        }
-        else
-        {
-            c("Correct: ", correct, " Incorrect: ", incorrect)
-            
-        }
-    })
+        })
+    }
     
     output$quizImage <- renderText({
         
@@ -39,7 +42,7 @@ observeEvent(input$quizSubmit,
         # change bird
         if (length(speciesCodeList) == 0)
         {
-            key <- input$apikey # key for the ebird API
+            
             if (key != "")
             {
             
@@ -84,12 +87,12 @@ observeEvent(input$quizSubmit,
                         # set the code list to the species in the county
                         speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
                     }
-                    else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                    else if(state != "None" & selection == "State") # if there is a state and it is selected
                     {
                         # set the code list to the species in the state
                         speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
                     }
-                    else if(selection == "Country") # if the selection is country
+                    else # if the selection is country
                     {
                         # set the code list to the species in the country
                         speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
@@ -113,33 +116,17 @@ observeEvent(input$quizSubmit,
                     if(county != "None" & selection == "County") # if there is a county and it is selected
                     {
                         
-                        for (i in 0:daysBack)
-                        {
-                            searchDate <- as.Date(currentDate) - i
-                            responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
-                            dateList <- as.list(responseTibble$comName)
-                            speciesCodeList <<- union(speciesCodeList, dateList)
-                        }
+                        speciesCodeList <<- regionObs(key = key, regionCode = countyCode, back = daysBack)$comName
                     }
-                    else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                    else if(state != "None" & selection == "State") # if there is a state and it is selected
                     {
-                        for (i in 0:daysBack)
-                        {
-                            searchDate <- as.Date(currentDate) - i
-                            responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
-                            dateList <- as.list(responseTibble$comName)
-                            speciesCodeList <<- union(speciesCodeList, dateList)
-                        }
+                        speciesCodeList <<- regionObs(key = key, regionCode = stateCode, back = daysBack)$comName
+                        
                     }
-                    else if(selection == "Country") # if the selection is country
+                    else # if the selection is country
                     {
-                        for (i in 0:daysBack)
-                        {
-                            searchDate <- as.Date(currentDate) - i
-                            responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
-                            dateList <- as.list(responseTibble$comName)
-                            speciesCodeList <<- union(speciesCodeList, dateList)
-                        }
+                        speciesCodeList <<- regionObs(key = key, regionCode = countryCode, back = daysBack)$comName
+                        
                     }
                     
                     speciesCodeList <<- sort(unlist(speciesCodeList))
@@ -147,59 +134,61 @@ observeEvent(input$quizSubmit,
                 }
             }
         }
-        speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
-        choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
-        choices <- sample(choices)
-        values <- c()
-        for (i in 1:5)
+        if (key != "")
         {
-            if (choices[i] == speciesCodeList[speciesIndex])
+            speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
+            choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
+            choices <- sample(choices)
+            values <- c()
+            for (i in 1:5)
             {
-                values <- append(values, TRUE)
+                if (choices[i] == speciesCodeList[speciesIndex])
+                {
+                    values <- append(values, TRUE)
+                }
+                else
+                {
+                    values <- append(values, FALSE)
+                }
             }
-            else
+            updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
+            photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 50, sort = "relevance", api_key = flickerAPIkey)
+            photoIndex <- round(runif(min = 1, max = 3, n = 1))
+            
+            serverID <- photo$server[photoIndex]
+            ID <- photo$id[photoIndex]
+            secret <- photo$secret[photoIndex]
+            size = "w"
+            format = "jpg"
+            
+            src= paste(
+                sep = "",
+                "https://live.staticflickr.com/",
+                serverID,
+                "/",
+                ID,
+                "_",
+                secret,
+                "_",
+                size,
+                ".",
+                format
+                       )
+            cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
+            print(cite)
+            author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
+            print(author)
+            if (author == "")
             {
-                values <- append(values, FALSE)
+                author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
             }
+            c('<img src="', src, '">', '<br/>
+              <p>Photo property of 
+              <a href="', cite, '" target="_blank">' ,author, '</a>
+              and API services via
+              <a href="https://www.flickr.com" target="_blank">Flickr</a>
+              </p>')
         }
-        updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-        photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 50, sort = "relevance", api_key = flickerAPIkey)
-        photoIndex <- round(runif(min = 1, max = 3, n = 1))
-        
-        serverID <- photo$server[photoIndex]
-        ID <- photo$id[photoIndex]
-        secret <- photo$secret[photoIndex]
-        size = "w"
-        format = "jpg"
-        
-        src= paste(
-            sep = "",
-            "https://live.staticflickr.com/",
-            serverID,
-            "/",
-            ID,
-            "_",
-            secret,
-            "_",
-            size,
-            ".",
-            format
-                   )
-        cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
-        print(cite)
-        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
-        print(author)
-        if (author == "")
-        {
-            author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
-        }
-        c('<img src="', src, '">', '<br/>
-          <p>Photo property of 
-          <a href="', cite, '" target="_blank">' ,author, '</a>
-          and API services via
-          <a href="https://www.flickr.com" target="_blank">Flickr</a>
-          </p>')
-        
     })
 })
 
@@ -213,13 +202,13 @@ observeEvent(c(input$resetQuiz),
         
     })
     output$quizImage <- renderText({
-        
+        key <- input$apikey # key for the ebird API
         
         
         # change bird
         if (length(speciesCodeList) == 0)
         {
-            key <- input$apikey # key for the ebird API
+            
             
             if (key != "")
             {
@@ -264,12 +253,12 @@ observeEvent(c(input$resetQuiz),
                         # set the code list to the species in the county
                         speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
                     }
-                    else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                    else if(state != "None" & selection == "State") # if there is a state and it is selected
                     {
                         # set the code list to the species in the state
                         speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
                     }
-                    else if(selection == "Country") # if the selection is country
+                    else # if the selection is country
                     {
                         # set the code list to the species in the country
                         speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
@@ -293,33 +282,17 @@ observeEvent(c(input$resetQuiz),
                     if(county != "None" & selection == "County") # if there is a county and it is selected
                     {
                         
-                        for (i in 0:daysBack)
-                        {
-                            searchDate <- as.Date(currentDate) - i
-                            responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
-                            dateList <- as.list(responseTibble$comName)
-                            speciesCodeList <<- union(speciesCodeList, dateList)
-                        }
+                        speciesCodeList <<- regionObs(key = key, regionCode = countyCode, back = daysBack)$comName
                     }
-                    else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+                    else if(state != "None" & selection == "State") # if there is a state and it is selected
                     {
-                        for (i in 0:daysBack)
-                        {
-                            searchDate <- as.Date(currentDate) - i
-                            responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
-                            dateList <- as.list(responseTibble$comName)
-                            speciesCodeList <<- union(speciesCodeList, dateList)
-                        }
+                        speciesCodeList <<- regionObs(key = key, regionCode = stateCode, back = daysBack)$comName
+                        
                     }
-                    else if(selection == "Country") # if the selection is country
+                    else # if the selection is country
                     {
-                        for (i in 0:daysBack)
-                        {
-                            searchDate <- as.Date(currentDate) - i
-                            responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
-                            dateList <- as.list(responseTibble$comName)
-                            speciesCodeList <<- union(speciesCodeList, dateList)
-                        }
+                        speciesCodeList <<- regionObs(key = key, regionCode = countryCode, back = daysBack)$comName
+                        
                     }
                     
                     speciesCodeList <<- sort(unlist(speciesCodeList))
@@ -327,58 +300,61 @@ observeEvent(c(input$resetQuiz),
                 }
             }
         }
-        speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
-        choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
-        choices <- sample(choices)
-        values <- c()
-        for (i in 1:5)
+        if (key != "")
         {
-            if (choices[i] == speciesCodeList[speciesIndex])
+            speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
+            choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
+            choices <- sample(choices)
+            values <- c()
+            for (i in 1:5)
             {
-                values <- append(values, TRUE)
+                if (choices[i] == speciesCodeList[speciesIndex])
+                {
+                    values <- append(values, TRUE)
+                }
+                else
+                {
+                    values <- append(values, FALSE)
+                }
             }
-            else
+            updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
+            photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey)
+            photoIndex <- round(runif(min = 1, max = 3, n = 1))
+            
+            serverID <- photo$server[photoIndex]
+            ID <- photo$id[photoIndex]
+            secret <- photo$secret[photoIndex]
+            size = "w"
+            format = "jpg"
+            
+            src= paste(
+                sep = "",
+                "https://live.staticflickr.com/",
+                serverID,
+                "/",
+                ID,
+                "_",
+                secret,
+                "_",
+                size,
+                ".",
+                format
+            )
+            
+            cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
+            print(cite)
+            author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
+            print(author)
+            if (author == "")
             {
-                values <- append(values, FALSE)
+                author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
             }
+            c('<img src="', src, '">', '<br/>
+              <p>Photo property of 
+              <a href="', cite, '" target="_blank">' ,author, '</a>
+              and API services via
+              <a href="flickr.com" target="_blank">Flickr</a>
+              </p>')
         }
-        updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-        photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey)
-        photoIndex <- round(runif(min = 1, max = 3, n = 1))
-        
-        serverID <- photo$server[photoIndex]
-        ID <- photo$id[photoIndex]
-        secret <- photo$secret[photoIndex]
-        size = "w"
-        format = "jpg"
-        
-        src= paste(
-            sep = "",
-            "https://live.staticflickr.com/",
-            serverID,
-            "/",
-            ID,
-            "_",
-            secret,
-            "_",
-            size,
-            ".",
-            format
-        )
-        
-        cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
-        print(cite)
-        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
-        print(author)
-        if (author == "")
-        {
-            author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
-        }
-        c('<img src="', src, '">', '<br/>
-          <p>Photo property of 
-          <a href="', cite, '" target="_blank">' ,author, '</a>
-          and API services via
-          <a href="flickr.com" target="_blank">Flickr</a>
-          </p>')
     })
 })

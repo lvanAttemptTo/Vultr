@@ -23,8 +23,8 @@ SettingsTab <- tabItem(
 				
 				# drop-down menus for the country, state, and county
 				selectInput("country","Country", countryList),
-				selectInput("state", "State", c()),
-				selectInput("county", "County", c()),
+				selectInput("state", "State", c("None")),
+				selectInput("county", "County", c("None")),
 				
 				# box for specific location
 				box(

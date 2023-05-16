@@ -43,12 +43,12 @@ output$speciesList <- renderUI({
                 # set the code list to the species in the county
                 speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
             }
-            else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+            else if(state != "None" & selection == "State") # if there is a state and it is selected
             {
                 # set the code list to the species in the state
                 speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
             }
-            else if(selection == "Country") # if the selection is country
+            else # if the selection is country
             {
                 # set the code list to the species in the country
                 speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
@@ -72,33 +72,17 @@ output$speciesList <- renderUI({
             if(county != "None" & selection == "County") # if there is a county and it is selected
             {
                 
-                for (i in 0:daysBack)
-                {
-                    searchDate <- as.Date(currentDate) - i
-                    responseTibble <- ebirdhistorical(loc = countyCode, date = searchDate, key = key)
-                    dateList <- as.list(responseTibble$comName)
-                    speciesCodeList <<- union(speciesCodeList, dateList)
-                }
+                speciesCodeList <<- regionObs(key = key, regionCode = countyCode, back = daysBack)$comName
             }
-            else if(stateCode != "" & selection == "State") # if there is a state and it is selected
+            else if(state != "None" & selection == "State") # if there is a state and it is selected
             {
-                for (i in 0:daysBack)
-                {
-                    searchDate <- as.Date(currentDate) - i
-                    responseTibble <- ebirdhistorical(loc = stateCode, date = searchDate, key = key)
-                    dateList <- as.list(responseTibble$comName)
-                    speciesCodeList <<- union(speciesCodeList, dateList)
-                }
+                speciesCodeList <<- regionObs(key = key, regionCode = stateCode, back = daysBack)$comName
+                
             }
-            else if(selection == "Country") # if the selection is country
+            else # if the selection is country
             {
-                for (i in 0:daysBack)
-                {
-                    searchDate <- as.Date(currentDate) - i
-                    responseTibble <- ebirdhistorical(loc = countryCode, date = searchDate, key = key)
-                    dateList <- as.list(responseTibble$comName)
-                    speciesCodeList <<- union(speciesCodeList, dateList)
-                }
+                speciesCodeList <<- regionObs(key = key, regionCode = countryCode, back = daysBack, )$comName
+                
             }
             
             speciesCodeList <<- sort(unlist(speciesCodeList))

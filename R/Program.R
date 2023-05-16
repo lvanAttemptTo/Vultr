@@ -102,6 +102,7 @@ commonToIndex <- function(name)
     return(index)
 }
 
+
 # function that searches the species tibble and returns the indexes of occurrences
 searchSpeciesTibble <- function(columnSearch, term)
 {
