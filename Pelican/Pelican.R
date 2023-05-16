@@ -30,52 +30,54 @@ nearbyObs <- function(key = NA, lat = NA, lng = NA, dist = 25, back = 14, cat = 
         parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
         parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
         parsedSightingInformation <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
-        
-        for (i in 1:(length(parsedSightings)-1))
+        if (length(parsedSightings) > 1)
         {
-            testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
-            testParse2 <- unlist(str_split(testParse1, ',\"'))
-            testParse3 <- list()
-            for (j in testParse2)
+            for (i in 1:(length(parsedSightings)-1))
             {
-                p <- unlist(str_split(j, "[:]"))[2]
-                
-                p <- gsub('"', "", p)
-                
-                if (p == "true")
+                testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
+                testParse2 <- unlist(str_split(testParse1, ',\"'))
+                testParse3 <- list()
+                for (j in testParse2)
                 {
-                    p <- TRUE
-                }
-                else if (p == "false")
-                {
-                    p <- FALSE
-                }
-                suppressWarnings(
-                    expr = {
-                        if (!is.na(as.numeric(p)))
-                        {
-                            p <- as.numeric(p)
-                        }
+                    p <- unlist(str_split(j, "[:]"))[2]
+                    
+                    p <- gsub('"', "", p)
+                    
+                    if (p == "true")
+                    {
+                        p <- TRUE
                     }
+                    else if (p == "false")
+                    {
+                        p <- FALSE
+                    }
+                    suppressWarnings(
+                        expr = {
+                            if (!is.na(as.numeric(p)))
+                            {
+                                p <- as.numeric(p)
+                            }
+                        }
+                        
+                        
+                    )
+    
                     
-                    
-                )
-
-                
-                testParse3 <- append(testParse3, p)
+                    testParse3 <- append(testParse3, p)
+                }
+                if (length(testParse3) == 12)
+                {
+                    temp <- testParse3[1:6]
+                    temp <- append(temp, NaN)
+                    temp <- append(temp, testParse3[7:12])
+                    testParse3 <- temp
+                }
+                else if(length(testParse3) == 14)
+                {
+                    testParse3 <- testParse3[1:13]
+                }
+                parsedSightingInformation[i,] <- testParse3
             }
-            if (length(testParse3) == 12)
-            {
-                temp <- testParse3[1:6]
-                temp <- append(temp, NaN)
-                temp <- append(temp, testParse3[7:12])
-                testParse3 <- temp
-            }
-            else if(length(testParse3) == 14)
-            {
-                testParse3 <- testParse3[1:13]
-            }
-            parsedSightingInformation[i,] <- testParse3
         }
         # df <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
         # for (i in 1:length(catRes))
@@ -131,51 +133,53 @@ regionObs <- function(key = NA, regionCode = NA, back = 14, cat = "all", hotspot
         parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
         parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
         parsedSightingInformation <-data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
-        
-        for (i in 1:(length(parsedSightings)-1))
+        if (length(parsedSightings) > 1)
         {
-            testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
-            testParse2 <- unlist(str_split(testParse1, ',\"'))
-            testParse3 <- list()
-            for (j in testParse2)
+            for (i in 1:(length(parsedSightings)-1))
             {
-                p <- unlist(str_split(j, "[:]"))[2]
-                
-                p <- gsub('"', "", p)
-                
-                if (p == "true")
+                testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
+                testParse2 <- unlist(str_split(testParse1, ',\"'))
+                testParse3 <- list()
+                for (j in testParse2)
                 {
-                    p <- TRUE
-                }
-                else if (p == "false")
-                {
-                    p <- FALSE
-                }
-                suppressWarnings(
-                    expr = {
-                        if (!is.na(as.numeric(p)))
-                        {
-                            p <- as.numeric(p)
-                        }
+                    p <- unlist(str_split(j, "[:]"))[2]
+                    
+                    p <- gsub('"', "", p)
+                    
+                    if (p == "true")
+                    {
+                        p <- TRUE
                     }
+                    else if (p == "false")
+                    {
+                        p <- FALSE
+                    }
+                    suppressWarnings(
+                        expr = {
+                            if (!is.na(as.numeric(p)))
+                            {
+                                p <- as.numeric(p)
+                            }
+                        }
+                        
+                        
+                    )
                     
-                    
-                )
-                
-                testParse3 <- append(testParse3, p)
+                    testParse3 <- append(testParse3, p)
+                }
+                if (length(testParse3) == 12)
+                {
+                    temp <- testParse3[1:6]
+                    temp <- append(temp, NaN)
+                    temp <- append(temp, testParse3[7:12])
+                    testParse3 <- temp
+                }
+                else if(length(testParse3) == 14)
+                {
+                	testParse3 <- testParse3[1:13]
+                }
+                parsedSightingInformation[i,] <- testParse3
             }
-            if (length(testParse3) == 12)
-            {
-                temp <- testParse3[1:6]
-                temp <- append(temp, NaN)
-                temp <- append(temp, testParse3[7:12])
-                testParse3 <- temp
-            }
-            else if(length(testParse3) == 14)
-            {
-            	testParse3 <- testParse3[1:13]
-            }
-            parsedSightingInformation[i,] <- testParse3
         }
         # df <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
         # for (i in 1:length(catRes))
