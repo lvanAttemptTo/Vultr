@@ -16,20 +16,20 @@ The _Species Information_ tab is for the general information on the species. Thi
   - Family
   - Distance of Closest Sighting
   - Location of Closest Sighting
-  - Number of Sightings In x Range In The Past x Days
+  - Number of Sightings In 1-50 km Range In The Past 1-30 Days
 * Sighting Locations
 * Similar Species In Area
 
 ### Species List
 
-The _Species List_ tab shows the birds sighted in the desired area either in the past x days or ever. The options for area are:
+The _Species List_ tab shows the birds sighted in the desired area either in the past 1-30 days or ever. The options for area are:
 * County
 * State
 * Country
 
 ### Sighting Map
 
-The _Sighting Map_ tab contains a map of sightings of the searched bird in the past x days from the set radius.
+The _Sighting Map_ tab contains a map of sightings of the searched bird in the past 1-30 days from the set radius.
 
 ### Quiz
 
