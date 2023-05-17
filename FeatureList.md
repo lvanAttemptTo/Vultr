@@ -4,8 +4,9 @@
 - [ ] https://github.com/lvanAttemptTo/vultr/issues/1
 # Large Features
 - [ ] Account Creation
-- [ ] 
+
 # Small Features
 - [ ] Bird Image When You Look It Up
+- [ ] light-dark mode switch
 # Graphics
 - [ ] Logo
