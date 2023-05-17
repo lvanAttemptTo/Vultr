@@ -4,9 +4,10 @@
 - [ ] https://github.com/lvanAttemptTo/vultr/issues/1
 # Large Features
 - [ ] Account Creation
-
+- [ ] Hotspot Map And Info
 # Small Features
 - [ ] Bird Image When You Look It Up
-- [ ] light-dark mode switch
+- [ ] Light-Dark Mode Switch
+- [ ] Switch Tile Type Option
 # Graphics
 - [ ] Logo
