@@ -16,7 +16,7 @@
 ### Leaflet
   Leaflet is the library that is used for displaying all of the maps in Vultr. The reason we picked leaflet is beacause of its easy use with shiny and multitude of inbuilt tiles. It also allows for easy marker creation and display.
 ### FlickrAPI
-  FlickrAPI is a library that acts
+  FlickrAPI is a library that lets you easily call the Flickr API. It is used to get images of birds and is currenly only used in the quiz, but will be soon added to other tabs.
 ## Website
 ### Shinyapps
 
