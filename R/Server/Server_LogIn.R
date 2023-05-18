@@ -24,21 +24,22 @@ user_info <- reactive({
 })
 
 
-
+# output that shows the users name or the login menu
 output$loginName <- renderMenu({
-    userdata <- user_info()
-    signedInFlag <<-TRUE
+    userdata <- user_info() # gets the user's data
+    signedInFlag <<- TRUE # sets the flag for being signed in to TRUE 
     if (!is.null(userdata$name))
     {
-        key <- userdata$ebirdKey
-        updateTextInput(inputId = "apikey", value = key)
-        updateSelectInput(inputId = "country", choices = countryList, selected = userdata$country)
+        key <- userdata$ebirdKey # ebird API Key of user
+        updateTextInput(inputId = "apikey", value = key) # sets ebird API Key
+        updateSelectInput(inputId = "country", choices = countryList, selected = userdata$country) # set user's country
         countryCode <- countrycode(userdata$country,origin = 'country.name', destination = 'iso2c')
-        subregion1Tibble <- ebirdsubregionlist(regionType = "subnational1", parentRegionCode = countryCode, key = key)
-        statesList <- as.list(subregion1Tibble$name)
-        state = userdata$state
-        if (length(statesList) > 0)
+        subregion1Tibble <- ebirdsubregionlist(regionType = "subnational1", parentRegionCode = countryCode, key = key) # tibble of subreagions in the country
+        statesList <- as.list(subregion1Tibble$name) # sets the state list
+        state = userdata$state # gets the user's state
+        if (length(statesList) > 0) # checks if there are any states in the country
         {
+            # updates the state 
             updateSelectInput(
                 inputId = "state",
                 label = "State",
@@ -46,10 +47,12 @@ output$loginName <- renderMenu({
                 selected = state
             )
             stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
-            county <- userdata$county
-            if (county != "None")
+            county <- userdata$county # gets the user's county
+            if (county != "None") # checks if there is a county 
             {
+                # list of all the counties
                 countyList <- as.list(ebirdsubregionlist("subnational2", stateCode, key = key)$name)
+                # sets the county
                 updateSelectInput(
                     inputId = "county",
                     label = "County",
@@ -57,8 +60,9 @@ output$loginName <- renderMenu({
                     selected = county
                 )
             }
-            else
+            else # else triggers if there is no county
             {
+                # sets it to none
                 updateSelectInput(
                     inputId = "county",
                     label = "County",
@@ -67,8 +71,9 @@ output$loginName <- renderMenu({
                 )
             }
         }
-        else
+        else # else triggers if there is no state
         {
+            # sets to none
             updateSelectInput(
                 inputId = "state",
                 label = "State",
@@ -76,20 +81,22 @@ output$loginName <- renderMenu({
                 selected = "None"
             )
         }
-        print(userdata$specificLocation)
         # updates the log in tab to be the users name
         
+        # sets the toggle to the user's set value
         updateSwitchInput(inputId = "specificlocationtoggle", value = userdata$specificLocation)
+        # if they have it set, set the specific location
         if (userdata$specificLocation)
         {
             updateNumericInput(inputId = "latiudeinput", value = userdata$specificLatitude) # numeric input for lat
             updateNumericInput(inputId = "longitudeinput", value = userdata$specificLongitude) # numeric input for lng
         }
-        else
+        else # if not set them to NULL
         {
             updateNumericInput(inputId = "latiudeinput", value = NULL) # numeric input for lat
             updateNumericInput(inputId = "longitudeinput", value = NULL) # numeric input for lng
         }
+        # sets the user's other settings
         updateSliderInput(inputId = "radius", value = userdata$radius)
         updateSliderInput(inputId = "daysback", value = userdata$daysBack)
         
@@ -97,8 +104,9 @@ output$loginName <- renderMenu({
         menuSubItem(userdata$name, icon = icon("user", lib = "font-awesome"))
         
     }
-    else
+    else # if the the user is not signed in
     {
+        # show the login tab option
         menuSubItem("Log In", tabName = "login", icon = icon("user", lib = "font-awesome"), selected = TRUE)
     }
     
