@@ -8,6 +8,8 @@
 - [ ] Hotspot Map And Info
 # Small Features
 - [ ] Bird Image When You Look It Up
+- [ ] Add Bird Images To The Species Tab
+- [ ] Add Rarity To Species Tab And Species Search
 - [ ] Light-Dark Mode Switch
 - [ ] Switch Tile Type Option
 # Graphics
