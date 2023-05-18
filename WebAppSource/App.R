@@ -1,14 +1,3 @@
-# installs packages that are not installed
-
-# list of required packages
-packageList <- c("tidyverse", "rebird", "shiny", "shinyWidgets", "shinydashboard",
-                 "shinydashboardPlus", "auk", "dynutils", "shinyalert", "contactdata",
-                 "countrycode", "geosphere", "shinyjs", "fresh", "leaflet", "dplyr",
-                 "shinyBS", "maps", "FlickrAPI", "shinymanager", "scrypt")
-newPackages <- packageList[!(packageList %in% installed.packages()[,"Package"])]
-
-if(length(newPackages)) install.packages(newPackages)
-
 library("tidyverse")
 library("rebird")
 library("shiny")
