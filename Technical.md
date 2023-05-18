@@ -14,9 +14,9 @@
 ### Fresh
   Fresh is a package that lets you change the color scheme of ShinyDashboard apps. At some point there will be a light or dark mode switch bu currently there is not.
 ### Leaflet
-  Leaflet is the library that is used for displaying all of the maps in Vultr. The reason we picked leaflet is beacause of its easy use with shiny and multitude of inbuilt tiles. 
-### Flickr
-
+  Leaflet is the library that is used for displaying all of the maps in Vultr. The reason we picked leaflet is beacause of its easy use with shiny and multitude of inbuilt tiles. It also allows for easy marker creation and display.
+### FlickrAPI
+  FlickrAPI is a library that acts
 ## Website
 ### Shinyapps
 
