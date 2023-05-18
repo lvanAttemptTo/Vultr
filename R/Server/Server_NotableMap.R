@@ -14,7 +14,7 @@ observeEvent(input$notableMapReload, {
         # tibble that contains the codes for the states and the full names
         subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
         
-        
+        # if there is any states
         if(state != "None")
         {
             stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
@@ -86,27 +86,27 @@ observeEvent(input$notableMapReload, {
             }
         }
         
-        
+        # tibble of notable sightings
         notableTibble <- ebirdnotable(lat = latitude, lng = longitude, key = key, dist = input$radius, back = input$daysBack)
-        print(notableTibble)
-        if (nrow(notableTibble) > 0)
+        if (nrow(notableTibble) > 0) # if there is any
         {
-            latList <- c(latitude)
-            lngList <- c(longitude)
-            latList <- append(latList, notableTibble$lat + runif(1, -0.002, 0.002))
-            lngList <- append(lngList, notableTibble$lng + runif(1, -0.002, 0.002))
-            locationNames <- c("User")
-            locationNames <- append(locationNames, paste0(notableTibble$comName, " : ", notableTibble$locName))
-            typeVector <- "user"
+            latVec <- c(latitude) # adds user's lat to vector
+            lngVec <- c(longitude) # adds user's lng to vector
+            latVec <- append(latVec, notableTibble$lat + runif(1, -0.002, 0.002)) # adds sightings lats to vector with slight offsets
+            lngVec <- append(lngVec, notableTibble$lng + runif(1, -0.002, 0.002)) # adds sightings lngs to vector with slight offsets
+            locationNames <- c("User") # adds user to the list of marker names
+            locationNames <- append(locationNames, paste0(notableTibble$comName, " : ", notableTibble$locName)) # adds species and where they where sighted to location names
+            typeVector <- "user" # vector of the marker types
             
-            for (i in 2:length(lngList))
+            # sets the rest of the types to "sighting"
+            for (i in 2:length(lngVec))
             {
                 typeVector <- append(typeVector, "sighting")
             }
-            print(latList)
-            print(lngList)
             # data frame with the information
-            dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+            dataFrame <- data.frame(lat = latVec, long = lngVec, type = typeVector, label = locationNames)
+            
+            # icons for the markers
             icons <- awesomeIconList(
                 user = makeAwesomeIcon(
                     icon = "user",
@@ -122,6 +122,8 @@ observeEvent(input$notableMapReload, {
                     
                 )
             )
+            
+            # outputs map
             output$notableMap <- renderLeaflet({
                 leaflet(data = dataFrame) %>%
                     addProviderTiles(providers$Esri.WorldImagery)%>%
@@ -129,8 +131,11 @@ observeEvent(input$notableMapReload, {
                     addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
                 
             })
+            
+            # output for the list of notable sightings
             output$notableList <- renderUI({
                 
+                # list of location names excluding the first because that is the user
                 notableNames <- as.list(sort(locationNames[2:length(locationNames)]))
                 HTML(
                     # converts the entire list to one string with a separator
