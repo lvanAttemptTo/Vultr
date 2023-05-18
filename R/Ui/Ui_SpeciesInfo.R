@@ -25,7 +25,20 @@ SpeciesInfoTab <- tabItem(
 		# column for similar species and species info
 		column(
 			width = 6, # column covers half the width
-			
+			box(
+			    # box appearance settings
+			    width = 12,
+			    title = "Photo",
+			    background = "black",
+			    collapsible = TRUE,
+			    solidHeader = TRUE,
+			    status = "primary",
+			    
+			    # image for bird
+			    htmlOutput("SpeciesPhoto"),
+			    actionBttn("previousphotosearch", "Previous Photo", icon = icon("arrow-left", lib = "font-awesome"), size = "xs"),
+			    actionBttn("nextphotosearch", "next Photo", icon = icon("arrow-right", lib = "font-awesome"), size = "xs")
+			),
 			# box for species info
 			box(
 				# box appearance settings

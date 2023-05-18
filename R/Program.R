@@ -215,6 +215,8 @@ incorrect <- 0
 quizSubmit <- 0
 searchVar <- 0
 signedInFlag <- FALSE
+speciesPhotoIndex <- 1
+searchedSpecies <- ""
 source("Server/Server_Shell.R", local = TRUE)
 
 # creates the app

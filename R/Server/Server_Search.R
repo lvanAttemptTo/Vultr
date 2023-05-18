@@ -92,7 +92,55 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
         
         if (!is.na(index))
         {
+            searchedSpecies <<- speciesInput
             # output for species information
+            output$SpeciesPhoto <- renderText({
+                photo <- getPhotoSearch(tags = c(speciesInput), per_page = 50, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
+                if (nrow(photo) > 0)
+                {
+                    speciesPhotoIndex <<- 1
+                    photoIndex <- speciesPhotoIndex
+                    
+                    serverID <- photo$server[photoIndex]
+                    ID <- photo$id[photoIndex]
+                    secret <- photo$secret[photoIndex]
+                    size = "w"
+                    format = "jpg"
+                    
+                    src= paste(
+                        sep = "",
+                        "https://live.staticflickr.com/",
+                        serverID,
+                        "/",
+                        ID,
+                        "_",
+                        secret,
+                        "_",
+                        size,
+                        ".",
+                        format
+                    )
+                    cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
+                    print(cite)
+                    author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
+                    print(author)
+                    if (author == "")
+                    {
+                        author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
+                    }
+                    c('<img src="', src, '", width="100%">', '<br/>
+                  <p>Photo property of 
+                  <a href="', cite, '" target="_blank">' ,author, '</a>
+                  and API services via
+                  <a href="https://www.flickr.com" target="_blank">Flickr</a>
+                  </p>')
+                }
+                else
+                {
+                    shinyalert("No Photos.")
+                }
+            })
+            
             output$SpeciesInfoOut <- renderText({ 
                 
                 # checks if the species if valid by making sure that it was found in the species index

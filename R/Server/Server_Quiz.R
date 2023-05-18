@@ -152,7 +152,7 @@ observeEvent(input$quizSubmit,
                 }
             }
             updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-            photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 50, sort = "relevance", api_key = flickerAPIkey)
+            photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 50, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
             photoIndex <- round(runif(min = 1, max = 3, n = 1))
             
             serverID <- photo$server[photoIndex]
@@ -318,7 +318,7 @@ observeEvent(c(input$resetQuiz),
                 }
             }
             updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-            photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey)
+            photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
             photoIndex <- round(runif(min = 1, max = 3, n = 1))
             
             serverID <- photo$server[photoIndex]
