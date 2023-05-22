@@ -204,3 +204,67 @@ regionObs <- function(key = NA, regionCode = NA, back = 14, cat = "all", hotspot
     }
 }
 
+nearbyHotspots <- function(key = NA, lat = NA, lng = NA, dist = 25, back = NA)
+{
+    if (!is.na(key) & !is.na(lat) & !is.na(lng))
+    {
+        headers = c(
+            
+            'X-eBirdApiToken' = key
+        )
+        if (is.na(back))
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/ref/hotspot/geo?lat=", lat, "&lng=", lng, "&dist=", dist, "&fmt=json"), add_headers(headers))
+        }
+        else
+        {
+            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/ref/hotspot/geo?lat=", lat, "&lng=", lng, "&dist=", dist, "&back=", back, "&fmt=json"), add_headers(headers))
+        }
+        catRes <- content(res, "text")
+        parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
+        parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
+        parsedSightingInformation <-data.frame(locId = NA, country = NA, subregion1 = NA, subregion2 = NA, lat = NA, lng = NA, locName = NA, lastSighting = NA, speciesCount = NA)
+        if (length(parsedSightings) > 1)
+        {
+            for (i in 1:(length(parsedSightings)-1))
+            {
+                testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
+                testParse2 <- unlist(str_split(testParse1, ',\"'))
+                testParse3 <- list()
+                for (j in testParse2)
+                {
+                    p <- unlist(str_split(j, "[:]"))[2]
+                    
+                    p <- gsub('"', "", p)
+                    
+                    if (p == "true")
+                    {
+                        p <- TRUE
+                    }
+                    else if (p == "false")
+                    {
+                        p <- FALSE
+                    }
+                    suppressWarnings(
+                        expr = {
+                            if (!is.na(as.numeric(p)))
+                            {
+                                p <- as.numeric(p)
+                            }
+                        }
+                        
+                        
+                    )
+                    
+                    testParse3 <- append(testParse3, p)
+                }
+                
+                parsedSightingInformation[i,] <- testParse3
+            }
+        }
+        parsedSightingInformation[i,] <- testParse3
+    }
+    return(parsedSightingInformation)
+}
+
+nearbyHotspots(key = "vmgu1o6c6ihc", lat = 45.5896568645855, lng = -122.738592624664)
