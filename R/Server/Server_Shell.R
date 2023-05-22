@@ -27,4 +27,7 @@ server <- function(input, output, session)
     
     # change species photo
     source("Server/Server_ChangeSpeciesPhoto.R", local = TRUE)
+    
+    # hotspot map
+    source("Server/Server_HotspotMap.R", local = TRUE)
 }

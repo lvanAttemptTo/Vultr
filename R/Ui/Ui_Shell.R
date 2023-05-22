@@ -46,14 +46,18 @@ ui <- function()
                 
                 menuItem("Species Search", icon = icon("magnifying-glass", lib = "font-awesome"),
                      menuSubItem("Species Information", tabName = "speciesSearch", icon = icon("info", lib = "font-awesome")),
-                     menuSubItem("Map", tabName = "speciesMap", icon = icon("location-dot", lib = "font-awesome"))
+                     menuSubItem("Map", tabName = "speciesMap", icon = icon("map", lib = "font-awesome"))
                 ),
                 menuItem("Species", icon = icon("feather", lib = "font-awesome"),
                     menuSubItem("Species List", tabName = "species", icon = icon("feather", lib = "font-awesome")),
                     menuSubItem("Notable sightings", tabName = "notableMapTab", icon = icon("circle-exclamation", lib = "font-awesome")),
                     menuSubItem("Target Map", tabName = "targetMapTab", icon = icon("plus", lib = "font-awesome"))
                 ),
-                menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
+                menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome")),
+                menuItem("Hotspots", icon = icon("fire", lib = "font-awesome"),
+                         menuSubItem("Hotspot Information", tabName = "hotspotInfo", icon = icon("info", lib = "font-awesome")),
+                     menuSubItem("Hotspot Map", tabName = "hotspotMap", icon = icon("map", lib = "font-awesome"))
+                 )
 
                 
                 
@@ -135,10 +139,44 @@ ui <- function()
                 		# end of map box
                 	)
                 	# end of map tab
+                ),
+                
+                tabItem(
+                    tabName = "hotspotMap",
+                    box(
+                        # box appearance settings 
+                        title = "",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary",
+                        
+                        # sets map height to height of window
+                        tags$style(type = "text/css", "#targetMap {height: calc(100vh - 80px) !important;}"),
+                        # map for displaying locations the species been sighted at
+                        actionButton("hotspotMapReload", label = "Reload"),
+                        leafletOutput("hotspotMap"), 
+                        uiOutput("hotspotList")
+                    )
+                ),
+                
+                tabItem(
+                    tabName = "hotspotInfo",
+                    box(
+                        # box appearance settings 
+                        title = "",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary"
+                        
+                        
+                    )
                 )
-                
-                
-                
                 
                 
                 

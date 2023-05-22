@@ -1,4 +1,4 @@
-observeEvent(input$notableMapReload, {
+observeEvent(input$hotspotMapReload, {
     
     key <- input$apikey
     
@@ -87,16 +87,16 @@ observeEvent(input$notableMapReload, {
         }
         
         
-        notableTibble <- ebirdnotable(lat = latitude, lng = longitude, key = key, dist = input$radius, back = input$daysBack)
-        print(notableTibble)
-        if (nrow(notableTibble) > 0)
+        hotspotDF <- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius)
+        print(hotspotDF)
+        if (nrow(hotspotDF) > 0)
         {
             latList <- c(latitude)
             lngList <- c(longitude)
-            latList <- append(latList, notableTibble$lat + runif(1, -0.002, 0.002))
-            lngList <- append(lngList, notableTibble$lng + runif(1, -0.002, 0.002))
+            latList <- append(latList, hotspotDF$lat)
+            lngList <- append(lngList, hotspotDF$lng)
             locationNames <- c("User")
-            locationNames <- append(locationNames, paste0(notableTibble$comName, " : ", notableTibble$locName))
+            locationNames <- append(locationNames, paste0(hotspotDF$locName))
             typeVector <- "user"
             
             for (i in 2:length(lngList))
@@ -115,33 +115,19 @@ observeEvent(input$notableMapReload, {
                     markerColor = "darkblue"
                 ),
                 sighting = makeAwesomeIcon(
-                    icon = "binoculars",
+                    icon = "fire",
                     iconColor = "black",
                     library = "fa",
                     markerColor = "blue",
                     
                 )
             )
-            output$notableMap <- renderLeaflet({
+            output$hotspotMap <- renderLeaflet({
                 leaflet(data = dataFrame) %>%
                     addProviderTiles(providers$Esri.WorldImagery)%>%
                     addProviderTiles(providers$Stamen.TonerLabels) %>%
                     addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
                 
-            })
-            output$notableList <- renderUI({
-                
-                notableNames <- as.list(sort(locationNames[2:length(locationNames)]))
-                HTML(
-                    # converts the entire list to one string with a separator
-                    paste(
-                        notableNames,
-                        collapse = "<br/>",
-                        sep = " "
-                        # end of paste
-                    )
-                    # end of HTML
-                )
             })
         }
     }

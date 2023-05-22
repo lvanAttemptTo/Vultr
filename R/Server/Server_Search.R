@@ -96,6 +96,8 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             # output for species information
             output$SpeciesPhoto <- renderText({
                 photo <- getPhotoSearch(tags = c(speciesInput), per_page = 50, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
+                speciesSearchPhoto <<- photo
+                
                 if (nrow(photo) > 0)
                 {
                     speciesPhotoIndex <<- 1
