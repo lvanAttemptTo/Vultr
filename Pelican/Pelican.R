@@ -223,7 +223,7 @@ nearbyHotspots <- function(key = NA, lat = NA, lng = NA, dist = 25, back = NA)
         catRes <- content(res, "text")
         parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
         parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
-        parsedSightingInformation <-data.frame(locId = NA, country = NA, subregion1 = NA, subregion2 = NA, lat = NA, lng = NA, locName = NA, lastSighting = NA, speciesCount = NA)
+        parsedSightingInformation <-data.frame(locId = NA, locName = NA, country = NA, subregion1 = NA, subregion2 = NA, lat = NA, lng = NA,  lastSighting = NA, speciesCount = NA)
         if (length(parsedSightings) > 1)
         {
             for (i in 1:(length(parsedSightings)-1))
