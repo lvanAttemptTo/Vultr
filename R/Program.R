@@ -217,6 +217,7 @@ searchVar <- 0
 signedInFlag <- FALSE
 speciesPhotoIndex <- 1
 searchedSpecies <- ""
+hotspotMapSettings <- c("speciesCount", "Hybrid")
 source("Server/Server_Shell.R", local = TRUE)
 
 # creates the app

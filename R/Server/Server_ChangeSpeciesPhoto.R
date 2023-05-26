@@ -6,7 +6,7 @@ observeEvent(c(input$previousphotosearch), {
     if (speciesInput != "")
     {
         photo <- speciesSearchPhoto
-        if (nrow(photo) > 0 & photo != "")
+        if (nrow(photo) > 0)
         {
             if (speciesPhotoIndex > 1)
             {
@@ -68,14 +68,20 @@ observeEvent(c(input$nextphotosearch), {
     
     speciesInput <- searchedSpecies
     outHTML <- NA
-    
+    print("1")
     if (speciesInput != "")
     {
+        print("2")
+        
         photo <- speciesSearchPhoto
-        if (nrow(photo) > 0 & photo != "")
+        if (nrow(photo) > 0)
         {
+            print("3")
+            
             if (speciesPhotoIndex < nrow(photo))
             {
+                print("4")
+                
                 speciesPhotoIndex <<- speciesPhotoIndex + 1
             
                 photoIndex <- speciesPhotoIndex
@@ -122,6 +128,8 @@ observeEvent(c(input$nextphotosearch), {
         }
         
     }
+    print("5")
+    
     if (!is.na(outHTML[[1]]))
     {
         output$SpeciesPhoto <- renderText({
