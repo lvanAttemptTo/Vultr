@@ -1,3 +1,4 @@
+
 library("tidyverse")
 library("rebird")
 library("shiny")
@@ -25,212 +26,7 @@ library("lubridate")
 
 
 # custom ebird API library
-library("httr")
-library("stringr")
-
-
-nearbyObs <- function(key = NA, lat = NA, lng = NA, dist = 25, back = 14, cat = "all", hotspot = FALSE, includeProvisional = FALSE, sort = "date", sppLocale = "en", maxResults = "all")
-{
-    if (!is.na(key) & !is.na(lat) & !is.na(lng))
-    {
-        headers = c(
-            
-            'X-eBirdApiToken' = key
-        )
-        if (cat == "all" & maxResults == "all")
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale), add_headers(headers))
-        }
-        else if (cat != "all" & maxResults != "all")
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat, "&maxResults=", maxResults), add_headers(headers))
-        }
-        else if (cat != "all")
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat), add_headers(headers))
-        }
-        else
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/geo/recent?lat=", lat, "&lng=", lng, "&sort=", sort, "&dist=", dist, "&back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&maxResults=", maxResults), add_headers(headers))
-        }
-        catRes <- content(res, 'text')
-        parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
-        parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
-        parsedSightingInformation <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
-        if (length(parsedSightings) > 1)
-        {
-            for (i in 1:(length(parsedSightings)-1))
-            {
-                testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
-                testParse2 <- unlist(str_split(testParse1, ',\"'))
-                testParse3 <- list()
-                for (j in testParse2)
-                {
-                    p <- unlist(str_split(j, "[:]"))[2]
-                    
-                    p <- gsub('"', "", p)
-                    
-                    if (p == "true")
-                    {
-                        p <- TRUE
-                    }
-                    else if (p == "false")
-                    {
-                        p <- FALSE
-                    }
-                    suppressWarnings(
-                        expr = {
-                            if (!is.na(as.numeric(p)))
-                            {
-                                p <- as.numeric(p)
-                            }
-                        }
-                        
-                        
-                    )
-                    
-                    
-                    testParse3 <- append(testParse3, p)
-                }
-                if (length(testParse3) == 12)
-                {
-                    temp <- testParse3[1:6]
-                    temp <- append(temp, NaN)
-                    temp <- append(temp, testParse3[7:12])
-                    testParse3 <- temp
-                }
-                else if(length(testParse3) == 14)
-                {
-                    testParse3 <- testParse3[1:13]
-                }
-                parsedSightingInformation[i,] <- testParse3
-            }
-        }
-        # df <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
-        # for (i in 1:length(catRes))
-        # {
-        #     
-        #     df[i,] <- catRes[[i]]
-        # }
-        # return(df)
-        return(parsedSightingInformation)
-    }
-    else if (is.na(key))
-    {
-        warning("No key set")
-    }
-    else if (is.na(lat))
-    {
-        warning("No latitude set")
-    }
-    else if (is.na(lng))
-    {
-        warning("No longitude set")
-    }
-}
-
-
-regionObs <- function(key = NA, regionCode = NA, back = 14, cat = "all", hotspot = FALSE, includeProvisional = FALSE, sppLocale = "en", maxResults = "all")
-{
-    if (!is.na(key) & !is.na(regionCode))
-    {
-        headers = c(
-            
-            'X-eBirdApiToken' = key
-        )
-        
-        if (cat == "all" & maxResults == "all")
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale), add_headers(headers))
-        }
-        else if (cat != "all" & maxResults != "all")
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat, "&maxResults=", maxResults), add_headers(headers))
-        }
-        else if (cat != "all")
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&cat=", cat), add_headers(headers))
-        }
-        else
-        {
-            res <- VERB("GET", url = paste0("https://api.ebird.org/v2/data/obs/", regionCode, "/recent", "?back=", back, "&hotspot=", hotspot, "&includeProvisional=", includeProvisional, "&sppLocal=", sppLocale, "&maxResults=", maxResults), add_headers(headers))
-        }
-        
-        catRes <- content(res, 'text')
-        parsedSightings <- unlist(str_split(catRes[[1]], "[}]"))
-        parsedSightings <- parsedSightings[!duplicated(parsedSightings)]
-        parsedSightingInformation <-data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
-        if (length(parsedSightings) > 1)
-        {
-            for (i in 1:(length(parsedSightings)-1))
-            {
-                testParse1 <- unlist(str_split(parsedSightings[i], "[{]"))[2]
-                testParse2 <- unlist(str_split(testParse1, ',\"'))
-                testParse3 <- list()
-                for (j in testParse2)
-                {
-                    p <- unlist(str_split(j, "[:]"))[2]
-                    
-                    p <- gsub('"', "", p)
-                    
-                    if (p == "true")
-                    {
-                        p <- TRUE
-                    }
-                    else if (p == "false")
-                    {
-                        p <- FALSE
-                    }
-                    suppressWarnings(
-                        expr = {
-                            if (!is.na(as.numeric(p)))
-                            {
-                                p <- as.numeric(p)
-                            }
-                        }
-                        
-                        
-                    )
-                    
-                    testParse3 <- append(testParse3, p)
-                }
-                if (length(testParse3) == 12)
-                {
-                    temp <- testParse3[1:6]
-                    temp <- append(temp, NaN)
-                    temp <- append(temp, testParse3[7:12])
-                    testParse3 <- temp
-                }
-                else if(length(testParse3) == 14)
-                {
-                    testParse3 <- testParse3[1:13]
-                }
-                parsedSightingInformation[i,] <- testParse3
-            }
-        }
-        # df <- data.frame(speciesCode = NA, comName = NA, sciName = NA, locId = NA, locName = NA, obsDt = NA, howMany = NA, lat = NA, lng = NA, obsValid = NA, obsReviewed = NA, locationPrivate = NA, subId = NA)
-        # for (i in 1:length(catRes))
-        # {
-        #     
-        #     df[i,] <- catRes[[i]]
-        # }
-        # return(df)
-        return(parsedSightingInformation)
-    }
-    else if (is.na(key))
-    {
-        warning("No key set")
-    }
-    else if (is.na(lat))
-    {
-        warning("No latitude set")
-    }
-    else if (is.na(lng))
-    {
-        warning("No longitude set")
-    }
-}
-
+source("Pelican/Pelican.R")
 
 # import for ebird life list
 
@@ -440,7 +236,6 @@ user_base <- tibble(
 
 
 
-
 # ui script
 # custom color scheme 
 colorScheme <- create_theme(
@@ -627,7 +422,7 @@ SettingsTab <- tabItem(
                 # text with a link to where you can get a key
                 uiOutput("APILink"),
                 # text box for inputting key
-                textInput("apikey", value = "", label = "")
+                textInput("apikey", value = APIkey, label = "")
                 # end of API key box
             ),
             
@@ -768,14 +563,18 @@ ui <- function()
                 
                 menuItem("Species Search", icon = icon("magnifying-glass", lib = "font-awesome"),
                          menuSubItem("Species Information", tabName = "speciesSearch", icon = icon("info", lib = "font-awesome")),
-                         menuSubItem("Map", tabName = "speciesMap", icon = icon("location-dot", lib = "font-awesome"))
+                         menuSubItem("Map", tabName = "speciesMap", icon = icon("map", lib = "font-awesome"))
                 ),
                 menuItem("Species", icon = icon("feather", lib = "font-awesome"),
                          menuSubItem("Species List", tabName = "species", icon = icon("feather", lib = "font-awesome")),
                          menuSubItem("Notable sightings", tabName = "notableMapTab", icon = icon("circle-exclamation", lib = "font-awesome")),
                          menuSubItem("Target Map", tabName = "targetMapTab", icon = icon("plus", lib = "font-awesome"))
                 ),
-                menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome"))
+                menuItem("Quiz", tabName = "quiz", icon = icon("question", lib = "font-awesome")),
+                menuItem("Hotspots", icon = icon("fire", lib = "font-awesome"),
+                         menuSubItem("Hotspot Information", tabName = "hotspotInfo", icon = icon("info", lib = "font-awesome")),
+                         menuSubItem("Hotspot Map", tabName = "hotspotMap", icon = icon("map", lib = "font-awesome"))
+                )
                 
                 
                 
@@ -857,10 +656,52 @@ ui <- function()
                         # end of map box
                     )
                     # end of map tab
+                ),
+                
+                tabItem(
+                    tabName = "hotspotMap",
+                    box(
+                        # box appearance settings 
+                        title = "",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary",
+                        
+                        # sets map height to height of window
+                        tags$style(type = "text/css", "#targetMap {height: calc(100vh - 80px) !important;}"),
+                        # map for displaying locations the species been sighted at
+                        actionButton("hotspotMapReload", label = "Reload"),
+                        numericInput("speciesLimit", "Minimum Number of Species", value = 0),
+                        dropdownMenu = boxDropdown(
+                            boxDropdownItem("Number of Species Sighted", id = "speciesCountHotspotMap"),
+                            boxDropdownItem("Number of New Species", id = "newSpeciesCountHotspotMap"),
+
+                            
+                            
+                        ),
+                        leafletOutput("hotspotMap"), 
+                        uiOutput("hotspotList")
+                    )
+                ),
+                
+                tabItem(
+                    tabName = "hotspotInfo",
+                    box(
+                        # box appearance settings 
+                        title = "",
+                        background = "black",
+                        collapsible = TRUE,
+                        solidHeader = TRUE,
+                        width = 12,
+                        height = 24,
+                        status = "primary"
+                        
+                        
+                    )
                 )
-                
-                
-                
                 
                 
                 
@@ -886,6 +727,7 @@ searchVar <- 0
 signedInFlag <- FALSE
 speciesPhotoIndex <- 1
 searchedSpecies <- ""
+hotspotMapSettings <- c("speciesCount", "Hybrid")
 server <- function(input, output, session)
 {
     # log in code
@@ -1411,6 +1253,8 @@ server <- function(input, output, session)
                 # output for species information
                 output$SpeciesPhoto <- renderText({
                     photo <- getPhotoSearch(tags = c(speciesInput), per_page = 50, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
+                    speciesSearchPhoto <<- photo
+                    
                     if (nrow(photo) > 0)
                     {
                         speciesPhotoIndex <<- 1
@@ -1958,171 +1802,171 @@ server <- function(input, output, session)
                  })
     
     observeEvent(c(input$resetQuiz),
-     {
-         print(input$tabs)
-         correct <<- 0
-         incorrect <<- 0
-         output$quizScore <- renderText({
-             c("Correct: ", correct, " Incorrect: ", incorrect)
-             
-         })
-         output$quizImage <- renderText({
-             key <- input$apikey # key for the ebird API
-             
-             
-             # change bird
-             if (length(speciesCodeList) == 0)
-             {
-                 
-                 
-                 if (key != "")
                  {
-                     country <- input$country # full name of the country
-                     countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
-                     state <- input$state # full name of the state
-                     stateCode <- "" # ebird state code
-                     county <- input$county # full name of county
-                     countyCode <- "" # ebird county code
-                     # tibble that contains all the state codes and full names for the country
-                     subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
-                     
-                     # this block of code finds the ebird code for the state
-                     if (state != "None")
-                     {
-                         stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
-                         subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
-                     }
-                     else 
-                     {
-                         subregion2Tibble <- tibble()
-                     }
-                     # tibble that contains all the county codes and full names for the state
-                     
-                     # this block of code finds the ebird code for the county if there are any counties in the state
-                     if (nrow(subregion2Tibble) != 0)
-                     {
-                         # if there were counties it goes through and finds the county code
-                         # for the given input
-                         countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                     print(input$tabs)
+                     correct <<- 0
+                     incorrect <<- 0
+                     output$quizScore <- renderText({
+                         c("Correct: ", correct, " Incorrect: ", incorrect)
                          
-                     }
-                     
-                     
-                     selection <- input$speciesListArea # selection for the area(County, State, Country)
-                     
-                     if (input$speciesDateSwitch == FALSE)
-                     {
-                         speciesCodeList <<- c()
-                         if(county != "None" & selection == "County") # if there is a county and it is selected
-                         {
-                             # set the code list to the species in the county
-                             speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
-                         }
-                         else if(state != "None" & selection == "State") # if there is a state and it is selected
-                         {
-                             # set the code list to the species in the state
-                             speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
-                         }
-                         else # if the selection is country
-                         {
-                             # set the code list to the species in the country
-                             speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
-                         }
+                     })
+                     output$quizImage <- renderText({
+                         key <- input$apikey # key for the ebird API
                          
-                         # converts all of the codes to common names
-                         if (length(speciesCodeList) != 0)
+                         
+                         # change bird
+                         if (length(speciesCodeList) == 0)
                          {
-                             for (i in 1:length(speciesCodeList))
+                             
+                             
+                             if (key != "")
                              {
-                                 speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
+                                 country <- input$country # full name of the country
+                                 countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+                                 state <- input$state # full name of the state
+                                 stateCode <- "" # ebird state code
+                                 county <- input$county # full name of county
+                                 countyCode <- "" # ebird county code
+                                 # tibble that contains all the state codes and full names for the country
+                                 subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+                                 
+                                 # this block of code finds the ebird code for the state
+                                 if (state != "None")
+                                 {
+                                     stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                                     subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+                                 }
+                                 else 
+                                 {
+                                     subregion2Tibble <- tibble()
+                                 }
+                                 # tibble that contains all the county codes and full names for the state
+                                 
+                                 # this block of code finds the ebird code for the county if there are any counties in the state
+                                 if (nrow(subregion2Tibble) != 0)
+                                 {
+                                     # if there were counties it goes through and finds the county code
+                                     # for the given input
+                                     countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                                     
+                                 }
+                                 
+                                 
+                                 selection <- input$speciesListArea # selection for the area(County, State, Country)
+                                 
+                                 if (input$speciesDateSwitch == FALSE)
+                                 {
+                                     speciesCodeList <<- c()
+                                     if(county != "None" & selection == "County") # if there is a county and it is selected
+                                     {
+                                         # set the code list to the species in the county
+                                         speciesCodeList <<- ebirdregionspecies(countyCode, key = key)[[1]]
+                                     }
+                                     else if(state != "None" & selection == "State") # if there is a state and it is selected
+                                     {
+                                         # set the code list to the species in the state
+                                         speciesCodeList <<- ebirdregionspecies(stateCode, key = key)[[1]]
+                                     }
+                                     else # if the selection is country
+                                     {
+                                         # set the code list to the species in the country
+                                         speciesCodeList <<- ebirdregionspecies(countryCode, key = key)[[1]]
+                                     }
+                                     
+                                     # converts all of the codes to common names
+                                     if (length(speciesCodeList) != 0)
+                                     {
+                                         for (i in 1:length(speciesCodeList))
+                                         {
+                                             speciesCodeList[i] <<- ebirdCodeToCommon(speciesCodeList[[i]])
+                                         }
+                                     }
+                                     speciesCodeList <<- sort(speciesCodeList)
+                                 }
+                                 else
+                                 {
+                                     daysBack <- input$daysback
+                                     speciesCodeList <<- list()
+                                     
+                                     if(county != "None" & selection == "County") # if there is a county and it is selected
+                                     {
+                                         
+                                         speciesCodeList <<- regionObs(key = key, regionCode = countyCode, back = daysBack)$comName
+                                     }
+                                     else if(state != "None" & selection == "State") # if there is a state and it is selected
+                                     {
+                                         speciesCodeList <<- regionObs(key = key, regionCode = stateCode, back = daysBack)$comName
+                                         
+                                     }
+                                     else # if the selection is country
+                                     {
+                                         speciesCodeList <<- regionObs(key = key, regionCode = countryCode, back = daysBack)$comName
+                                         
+                                     }
+                                     
+                                     speciesCodeList <<- sort(unlist(speciesCodeList))
+                                     
+                                 }
                              }
                          }
-                         speciesCodeList <<- sort(speciesCodeList)
-                     }
-                     else
-                     {
-                         daysBack <- input$daysback
-                         speciesCodeList <<- list()
-                         
-                         if(county != "None" & selection == "County") # if there is a county and it is selected
+                         if (key != "")
                          {
+                             speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
+                             choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
+                             choices <- sample(choices)
+                             values <- c()
+                             for (i in 1:5)
+                             {
+                                 if (choices[i] == speciesCodeList[speciesIndex])
+                                 {
+                                     values <- append(values, TRUE)
+                                 }
+                                 else
+                                 {
+                                     values <- append(values, FALSE)
+                                 }
+                             }
+                             updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
+                             photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
+                             photoIndex <- round(runif(min = 1, max = 3, n = 1))
                              
-                             speciesCodeList <<- regionObs(key = key, regionCode = countyCode, back = daysBack)$comName
-                         }
-                         else if(state != "None" & selection == "State") # if there is a state and it is selected
-                         {
-                             speciesCodeList <<- regionObs(key = key, regionCode = stateCode, back = daysBack)$comName
+                             serverID <- photo$server[photoIndex]
+                             ID <- photo$id[photoIndex]
+                             secret <- photo$secret[photoIndex]
+                             size = "w"
+                             format = "jpg"
                              
-                         }
-                         else # if the selection is country
-                         {
-                             speciesCodeList <<- regionObs(key = key, regionCode = countryCode, back = daysBack)$comName
+                             src= paste(
+                                 sep = "",
+                                 "https://live.staticflickr.com/",
+                                 serverID,
+                                 "/",
+                                 ID,
+                                 "_",
+                                 secret,
+                                 "_",
+                                 size,
+                                 ".",
+                                 format
+                             )
                              
+                             cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
+                             print(cite)
+                             author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
+                             print(author)
+                             if (author == "")
+                             {
+                                 author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
+                             }
+                             c('<img src="', src, '">', '<br/>
+              <p>Photo property of 
+              <a href="', cite, '" target="_blank">' ,author, '</a>
+              and API services via
+              <a href="flickr.com" target="_blank">Flickr</a>
+              </p>')
                          }
-                         
-                         speciesCodeList <<- sort(unlist(speciesCodeList))
-                         
-                     }
-                 }
-             }
-             if (key != "")
-             {
-                 speciesIndex <- round(runif(1, 1, length(speciesCodeList)))
-                 choices <- c(speciesCodeList[speciesIndex], speciesCodeList[round(runif(4, 1, length(speciesCodeList)))])
-                 choices <- sample(choices)
-                 values <- c()
-                 for (i in 1:5)
-                 {
-                     if (choices[i] == speciesCodeList[speciesIndex])
-                     {
-                         values <- append(values, TRUE)
-                     }
-                     else
-                     {
-                         values <- append(values, FALSE)
-                     }
-                 }
-                 updateRadioButtons(inputId = "guess", choiceNames = choices, choiceValues = values)
-                 photo <- getPhotoSearch(tags = c(speciesCodeList[speciesIndex]), per_page = 3, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
-                 photoIndex <- round(runif(min = 1, max = 3, n = 1))
-                 
-                 serverID <- photo$server[photoIndex]
-                 ID <- photo$id[photoIndex]
-                 secret <- photo$secret[photoIndex]
-                 size = "w"
-                 format = "jpg"
-                 
-                 src= paste(
-                     sep = "",
-                     "https://live.staticflickr.com/",
-                     serverID,
-                     "/",
-                     ID,
-                     "_",
-                     secret,
-                     "_",
-                     size,
-                     ".",
-                     format
-                 )
-                 
-                 cite <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "url", api_key = flickerAPIkey)$content
-                 print(cite)
-                 author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$realname
-                 print(author)
-                 if (author == "")
-                 {
-                     author <- getPhotoInfo(photo_id = photo$id[photoIndex], output = "all", api_key = flickerAPIkey)$owner$username
-                 }
-                 c('<img src="', src, '">', '<br/>
-          <p>Photo property of 
-          <a href="', cite, '" target="_blank">' ,author, '</a>
-          and API services via
-          <a href="flickr.com" target="_blank">Flickr</a>
-          </p>')
-             }
-         })
-     })
+                     })
+                 })
     
     # notable sightings map
     observeEvent(input$notableMapReload, {
@@ -2448,7 +2292,7 @@ server <- function(input, output, session)
         
         if (speciesInput != "")
         {
-            photo <- getPhotoSearch(tags = c(speciesInput), per_page = 50, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
+            photo <- speciesSearchPhoto
             if (nrow(photo) > 0)
             {
                 if (speciesPhotoIndex > 1)
@@ -2511,14 +2355,20 @@ server <- function(input, output, session)
         
         speciesInput <- searchedSpecies
         outHTML <- NA
-        
+        print("1")
         if (speciesInput != "")
         {
-            photo <- getPhotoSearch(tags = c(speciesInput), per_page = 50, sort = "relevance", api_key = flickerAPIkey, img_size = "w")
+            print("2")
+            
+            photo <- speciesSearchPhoto
             if (nrow(photo) > 0)
             {
+                print("3")
+                
                 if (speciesPhotoIndex < nrow(photo))
                 {
+                    print("4")
+                    
                     speciesPhotoIndex <<- speciesPhotoIndex + 1
                     
                     photoIndex <- speciesPhotoIndex
@@ -2565,6 +2415,8 @@ server <- function(input, output, session)
             }
             
         }
+        print("5")
+        
         if (!is.na(outHTML[[1]]))
         {
             output$SpeciesPhoto <- renderText({
@@ -2572,6 +2424,622 @@ server <- function(input, output, session)
             })
         }
     })
+    
+    # hotspot map
+    observeEvent(input$speciesCountHotspotMap, {
+        hotspotMapSettings[1] <<- "speciesCount"
+        print(hotspotMapSettings)
+    })
+    observeEvent(input$newSpeciesCountHotspotMap, {
+        hotspotMapSettings[1] <<- "newSpeciesCount"
+        print(hotspotMapSettings)
+    })
+    observeEvent(input$obsDateHotspotMap, {
+        hotspotMapSettings[1] <<- "obsDate"
+        print(hotspotMapSettings)
+    })
+    
+    observeEvent(input$hotspotMapReload, {
+        print(hotspotMapSettings)
+        key <- input$apikey
+        
+        if (key != "")
+        {
+            locationSet <- input$specificlocationtoggle # setting for if the user has set a specific location
+            country <- input$country # full name of country
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c') # 2 character code for the country
+            state <- input$state # full name of the state
+            stateCode <- "" # ebird state code
+            county <- input$county # full name of county
+            countyCode <- "" # ebird code for the county
+            # tibble that contains the codes for the states and the full names
+            subregion1Tibble <- ebirdsubregionlist("subnational1",  countryCode, key = key)
+            
+            
+            if(state != "None")
+            {
+                stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+                subregion2Tibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+            }
+            else
+            {
+                subregion2Tibble <- tibble()
+            }
+            # tibble that has all the codes and names for counties in the state
+            # but it will be 0x0 if there are none
+            
+            # checks if there are counties for the given state
+            if (nrow(subregion2Tibble) > 0)
+            {
+                # if there were counties it goes through and finds the county code
+                # for the given input
+                
+                countyCode <- subregion2Tibble[[as.integer(searchTibble(subregion2Tibble,county)[1]), 1]]
+                
+                
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # this gets the information on the county from rebird
+                    countyInfoTibble <- ebirdregioninfo(countyCode, key = key)
+                    # calculates the average latitude and longitude for the county
+                    latitude <- (countyInfoTibble[[4]] + countyInfoTibble[[5]])/2
+                    longitude <- (countyInfoTibble[[2]] + countyInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else if (state != "None")# if there is not a county
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    stateInfoTibble <- ebirdregioninfo(stateCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (stateInfoTibble[[4]] + stateInfoTibble[[5]])/2
+                    longitude <- (stateInfoTibble[[2]] + stateInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            else
+            {
+                if (!locationSet)  # if the user has not set a specific location
+                {
+                    # gets the information on the state from rebird
+                    countryInfoTibble <- ebirdregioninfo(countryCode, key = key)
+                    # calculates the average latitude and longitude for the state
+                    latitude <- (countryInfoTibble[[4]] + countryInfoTibble[[5]])/2
+                    longitude <- (countryInfoTibble[[2]] + countryInfoTibble[[3]])/2
+                }
+                else # if the user has set a specific location
+                {
+                    # sets the lat and long to the users input
+                    latitude <- input$latiudeinput
+                    longitude <- input$longitudeinput
+                }
+            }
+            
+            
+            hotspotDF <- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius)
+            print(hotspotDF)
+            if (hotspotMapSettings[1] == "speciesCount")
+            {
+                
+                
+                if (nrow(hotspotDF) > 0)
+                {
+                    
+                    minSpecies <- input$speciesLimit
+                    minSpeciesVec <- c()
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        if (hotspotDF$speciesCount[i] < minSpecies)
+                        {
+                            minSpeciesVec <- append(minSpeciesVec, i)
+                        }
+                    }
+                    print(minSpeciesVec)
+                    if (length(minSpeciesVec) > 0)
+                    {
+                        hotspotDF <- hotspotDF[-minSpeciesVec, ]
+                    }
+                    
+                    latList <- c(latitude)
+                    lngList <- c(longitude)
+                    latList <- append(latList, hotspotDF$lat)
+                    lngList <- append(lngList, hotspotDF$lng)
+                    locationNames <- c("User")
+                    locationNames <- append(locationNames, paste0(hotspotDF$locName))
+                    typeVector <- "user"
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        if (hotspotDF$speciesCount[i] < 20)
+                        {
+                            typeVector <- append(typeVector, "sighting1") # white
+                        }
+                        else if (hotspotDF$speciesCount[i] < 40)
+                        {
+                            typeVector <- append(typeVector, "sighting2") # lightgray
+                        }
+                        else if (hotspotDF$speciesCount[i] < 60)
+                        {
+                            typeVector <- append(typeVector, "sighting3") # beige
+                        }
+                        else if (hotspotDF$speciesCount[i] < 80)
+                        {
+                            typeVector <- append(typeVector, "sighting4") # lightgreen
+                        }
+                        else if (hotspotDF$speciesCount[i] < 100)
+                        {
+                            typeVector <- append(typeVector, "sighting5") # green
+                        }
+                        else if (hotspotDF$speciesCount[i] < 120)
+                        {
+                            typeVector <- append(typeVector, "sighting6") # darkgreen
+                        }
+                        else if (hotspotDF$speciesCount[i] < 140)
+                        {
+                            typeVector <- append(typeVector, "sighting7") # cadetblue
+                        }
+                        else if (hotspotDF$speciesCount[i] < 160)
+                        {
+                            typeVector <- append(typeVector, "sighting8") # lightblue
+                        }
+                        else if (hotspotDF$speciesCount[i] < 180)
+                        {
+                            typeVector <- append(typeVector, "sighting9") # blue
+                        }
+                        else if (hotspotDF$speciesCount[i] < 200)
+                        {
+                            typeVector <- append(typeVector, "sighting10") # darkblue
+                        }
+                        else if (hotspotDF$speciesCount[i] < 220)
+                        {
+                            typeVector <- append(typeVector, "sighting11") # pink
+                        }
+                        else if (hotspotDF$speciesCount[i] < 240)
+                        {
+                            typeVector <- append(typeVector, "sighting12") # purple
+                        }
+                        else if (hotspotDF$speciesCount[i] < 260)
+                        {
+                            typeVector <- append(typeVector, "sighting13") # darkpurple
+                        }
+                        else if (hotspotDF$speciesCount[i] < 280)
+                        {
+                            typeVector <- append(typeVector, "sighting14") # orange
+                        }
+                        else if (hotspotDF$speciesCount[i] < 300)
+                        {
+                            typeVector <- append(typeVector, "sighting15") # lightred
+                        }
+                        else if (hotspotDF$speciesCount[i] < 350)
+                        {
+                            typeVector <- append(typeVector, "sighting16") # red
+                        }
+                        else
+                        {
+                            typeVector <- append(typeVector, "sighting17") # darkred
+                        }
+                        print(i)
+                    }
+                    print(latList)
+                    print(lngList)
+                    # data frame with the information
+                    dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                    icons <- awesomeIconList(
+                        user = makeAwesomeIcon(
+                            icon = "user",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkblue"
+                        ),
+                        sighting1 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "white",
+                            
+                        ),
+                        sighting2 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightgray",
+                            
+                        ),
+                        sighting3 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "beige",
+                            
+                        ),
+                        sighting4 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightgreen",
+                            
+                        ),
+                        sighting5 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "green",
+                            
+                        ),
+                        sighting6 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkgreen",
+                            
+                        ),
+                        sighting7 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "cadetblue",
+                            
+                        ),
+                        sighting8 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightblue",
+                            
+                        ),
+                        sighting9 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "blue",
+                            
+                        ),
+                        sighting10 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkblue",
+                            
+                        ),
+                        sighting11 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "pink",
+                            
+                        ),
+                        sighting12 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "purple",
+                            
+                        ),
+                        sighting13 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkpurple",
+                            
+                        ),
+                        sighting14 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "orange",
+                            
+                        ),
+                        sighting15 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightred",
+                            
+                        ),
+                        sighting16 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "red",
+                            
+                        ),
+                        sighting17 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkred",
+                            
+                        )
+                    )
+                }
+            }
+            
+            
+            
+            if (hotspotMapSettings[1] == "newSpeciesCount")
+            {
+                
+                
+                if (nrow(hotspotDF) > 0)
+                {
+                    
+                    shinyalert(title = "Loading This Can Take A Bit.") 
+                    minSpecies <- input$speciesLimit
+                    minSpeciesVec <- c()
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        if (hotspotDF$speciesCount[i] < minSpecies)
+                        {
+                            minSpeciesVec <- append(minSpeciesVec, i)
+                        }
+                    }
+                    hotspotDF <- hotspotDF[-minSpeciesVec, ]
+                    if (length(minSpeciesVec) > 0)
+                    {
+                        hotspotDF <- hotspotDF[-minSpeciesVec, ]
+                    }
+                    latList <- c(latitude)
+                    lngList <- c(longitude)
+                    latList <- append(latList, hotspotDF$lat)
+                    lngList <- append(lngList, hotspotDF$lng)
+                    locationNames <- c("User")
+                    locationNames <- append(locationNames, paste0(hotspotDF$locName))
+                    typeVector <- "user"
+                    hotspotNewSpeciesCount <- c()
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        suppressWarnings({
+                            temp <- ebirdregion(loc = hotspotDF$locId[i], key = key, back = input$daysback)
+                            if (nrow(temp) > 0)
+                            {
+                                lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
+                                hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, length(setdiff(temp$comName, lifeList)))
+                            }
+                            else
+                            {
+                                hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, 0)
+                            }
+                        })
+                    }
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        if (hotspotNewSpeciesCount[i] == 0)
+                        {
+                            typeVector <- append(typeVector, "sighting1") # white
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 1)
+                        {
+                            typeVector <- append(typeVector, "sighting2") # lightgray
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 3)
+                        {
+                            typeVector <- append(typeVector, "sighting3") # beige
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 5)
+                        {
+                            typeVector <- append(typeVector, "sighting4") # lightgreen
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 10)
+                        {
+                            typeVector <- append(typeVector, "sighting5") # green
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 15)
+                        {
+                            typeVector <- append(typeVector, "sighting6") # darkgreen
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 20)
+                        {
+                            typeVector <- append(typeVector, "sighting7") # cadetblue
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 25)
+                        {
+                            typeVector <- append(typeVector, "sighting8") # lightblue
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 30)
+                        {
+                            typeVector <- append(typeVector, "sighting9") # blue
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 40)
+                        {
+                            typeVector <- append(typeVector, "sighting10") # darkblue
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 50)
+                        {
+                            typeVector <- append(typeVector, "sighting11") # pink
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 60)
+                        {
+                            typeVector <- append(typeVector, "sighting12") # purple
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 70)
+                        {
+                            typeVector <- append(typeVector, "sighting13") # darkpurple
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 80)
+                        {
+                            typeVector <- append(typeVector, "sighting14") # orange
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 100)
+                        {
+                            typeVector <- append(typeVector, "sighting15") # lightred
+                        }
+                        else if (hotspotNewSpeciesCount[i] <= 150)
+                        {
+                            typeVector <- append(typeVector, "sighting16") # red
+                        }
+                        else
+                        {
+                            typeVector <- append(typeVector, "sighting17") # darkred
+                        }
+                    }
+                    
+                    # data frame with the information
+                    dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                    print(dataFrame[511,])
+                    hotspotsWithNone <- c()
+                    for (i in 1:nrow(dataFrame))
+                    {
+                        print(i)
+                        if (dataFrame$type[i] == "sighting1")
+                        {
+                            hotspotsWithNone <- append(hotspotsWithNone, i)
+                        }
+                    }
+                    print(hotspotsWithNone)
+                    dataFrame <- dataFrame[-hotspotsWithNone, ]
+                    icons <- awesomeIconList(
+                        user = makeAwesomeIcon(
+                            icon = "user",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkblue"
+                        ),
+                        sighting1 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "black",
+                            
+                        ),
+                        sighting2 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightgray",
+                            
+                        ),
+                        sighting3 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "beige",
+                            
+                        ),
+                        sighting4 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightgreen",
+                            
+                        ),
+                        sighting5 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "green",
+                            
+                        ),
+                        sighting6 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkgreen",
+                            
+                        ),
+                        sighting7 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "cadetblue",
+                            
+                        ),
+                        sighting8 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightblue",
+                            
+                        ),
+                        sighting9 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "blue",
+                            
+                        ),
+                        sighting10 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkblue",
+                            
+                        ),
+                        sighting11 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "pink",
+                            
+                        ),
+                        sighting12 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "purple",
+                            
+                        ),
+                        sighting13 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkpurple",
+                            
+                        ),
+                        sighting14 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "orange",
+                            
+                        ),
+                        sighting15 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "lightred",
+                            
+                        ),
+                        sighting16 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "red",
+                            
+                        ),
+                        sighting17 = makeAwesomeIcon(
+                            icon = "fire",
+                            iconColor = "black",
+                            library = "fa",
+                            markerColor = "darkred",
+                            
+                        )
+                    )
+                }
+            }
+            output$hotspotMap <- renderLeaflet({
+                leaflet(data = dataFrame) %>%
+                    addProviderTiles(providers$Esri.WorldImagery)%>%
+                    addProviderTiles(providers$Stamen.TonerLabels) %>%
+                    addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
+                
+            })
+        }
+        
+    })
+    
+    
+    
 }
 
 # creates the app
