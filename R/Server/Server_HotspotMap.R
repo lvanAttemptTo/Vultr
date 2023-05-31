@@ -108,6 +108,22 @@ observeEvent(input$hotspotMapReload, {
                 
             if (nrow(hotspotDF) > 0)
             {
+                
+                minSpecies <- input$speciesLimit
+                minSpeciesVec <- c()
+                for (i in 1:nrow(hotspotDF))
+                {
+                    if (hotspotDF$speciesCount[i] < minSpecies)
+                    {
+                        minSpeciesVec <- append(minSpeciesVec, i)
+                    }
+                }
+                print(minSpeciesVec)
+                if (length(minSpeciesVec) > 0)
+                {
+                    hotspotDF <- hotspotDF[-minSpeciesVec, ]
+                }
+                
                 latList <- c(latitude)
                 lngList <- c(longitude)
                 latList <- append(latList, hotspotDF$lat)
@@ -115,7 +131,6 @@ observeEvent(input$hotspotMapReload, {
                 locationNames <- c("User")
                 locationNames <- append(locationNames, paste0(hotspotDF$locName))
                 typeVector <- "user"
-                
                 for (i in 1:nrow(hotspotDF))
                 {
                     if (hotspotDF$speciesCount[i] < 20)
@@ -330,6 +345,22 @@ observeEvent(input$hotspotMapReload, {
                 
                 if (nrow(hotspotDF) > 0)
                 {
+                    
+                    shinyalert(title = "Loading This Can Take A Bit.") 
+                    minSpecies <- input$speciesLimit
+                    minSpeciesVec <- c()
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        if (hotspotDF$speciesCount[i] < minSpecies)
+                        {
+                            minSpeciesVec <- append(minSpeciesVec, i)
+                        }
+                    }
+                    hotspotDF <- hotspotDF[-minSpeciesVec, ]
+                    if (length(minSpeciesVec) > 0)
+                    {
+                        hotspotDF <- hotspotDF[-minSpeciesVec, ]
+                    }
                     latList <- c(latitude)
                     lngList <- c(longitude)
                     latList <- append(latList, hotspotDF$lat)
@@ -338,7 +369,6 @@ observeEvent(input$hotspotMapReload, {
                     locationNames <- append(locationNames, paste0(hotspotDF$locName))
                     typeVector <- "user"
                     hotspotNewSpeciesCount <- c()
-                    shinyalert(title = "Loading This Can Take A Bit.") # 
                     for (i in 1:nrow(hotspotDF))
                     {
                         suppressWarnings({
@@ -354,13 +384,11 @@ observeEvent(input$hotspotMapReload, {
                             }
                         })
                     }
-                    hotspotsWithNone <- c()
                     for (i in 1:nrow(hotspotDF))
                     {
                         if (hotspotNewSpeciesCount[i] == 0)
                         {
                             typeVector <- append(typeVector, "sighting1") # white
-                            hotspotsWithNone <- append(hotspotsWithNone, i)
                         }
                         else if (hotspotNewSpeciesCount[i] <= 1)
                         {
@@ -426,12 +454,21 @@ observeEvent(input$hotspotMapReload, {
                         {
                             typeVector <- append(typeVector, "sighting17") # darkred
                         }
-                        print(i)
                     }
-                    print(latList)
-                    print(lngList)
+                    
                     # data frame with the information
                     dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                    print(dataFrame[511,])
+                    hotspotsWithNone <- c()
+                    for (i in 1:nrow(dataFrame))
+                    {
+                        print(i)
+                        if (dataFrame$type[i] == "sighting1")
+                        {
+                            hotspotsWithNone <- append(hotspotsWithNone, i)
+                        }
+                    }
+                    print(hotspotsWithNone)
                     dataFrame <- dataFrame[-hotspotsWithNone, ]
                     icons <- awesomeIconList(
                         user = makeAwesomeIcon(

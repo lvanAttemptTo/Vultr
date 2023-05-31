@@ -157,6 +157,7 @@ ui <- function()
                         tags$style(type = "text/css", "#targetMap {height: calc(100vh - 80px) !important;}"),
                         # map for displaying locations the species been sighted at
                         actionButton("hotspotMapReload", label = "Reload"),
+                        numericInput("speciesLimit", "Minimum Number of Species", value = 0),
                         dropdownMenu = boxDropdown(
                             boxDropdownItem("Number of Species Sighted", id = "speciesCountHotspotMap"),
                             boxDropdownItem("Number of New Species", id = "newSpeciesCountHotspotMap"),
