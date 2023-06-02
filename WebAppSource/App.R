@@ -946,7 +946,7 @@ ui <- function()
                         numericInput("speciesLimit", "Minimum Number of Species", value = 0),
                         dropdownMenu = boxDropdown(
                             boxDropdownItem("Number of Species Sighted", id = "speciesCountHotspotMap"),
-                            boxDropdownItem("Number of New Species", id = "newSpeciesCountHotspotMap"),
+                            boxDropdownItem("Number of New Species", id = "newSpeciesCountHotspotMap")
 
                             
                             
@@ -1193,7 +1193,7 @@ server <- function(input, output, session)
     # drop down menu
     observeEvent(c(input$country, input$longitudeinput), {
         key <- input$apikey # key for the ebird API
-        if (key != "" & !signedInFlag)
+        if (key != "" & signedInFlag)
         {
             country <- input$country # full name of country selected
             # 2 char code for the country that ebird uses to look stuff up
@@ -1260,6 +1260,27 @@ server <- function(input, output, session)
                     selected = "None"
                 )
             }
+        }
+        else if (key != "")
+        {
+            country <- input$country # full name of country selected
+            # 2 char code for the country that ebird uses to look stuff up
+            countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
+            # tibble that rebird returns that is 2 x n (state code, full name)
+            statesTibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
+            # list that will store all the full names of the states
+            statesList <- list()
+            # checks to make sure that the tibble retrieval worked
+            if (nrow(statesTibble) > 0)
+            {
+                # loops through every row of the tibble and adds the full name to "statesList"
+                statesList <- as.list(statesTibble$name)
+            }
+            updateSelectInput(
+                inputId = "state",
+                label = "State",
+                choices = statesList
+            )
         }
         signedInFlag <<- FALSE
         # end of observe event for country selection
@@ -1337,7 +1358,7 @@ server <- function(input, output, session)
                 # end of state check
             }
         }
-        signedInFlag <<- FALSE
+        
         # end of observe event for state select
     })
     
@@ -3053,7 +3074,6 @@ server <- function(input, output, session)
                             minSpeciesVec <- append(minSpeciesVec, i)
                         }
                     }
-                    hotspotDF <- hotspotDF[-minSpeciesVec, ]
                     if (length(minSpeciesVec) > 0)
                     {
                         hotspotDF <- hotspotDF[-minSpeciesVec, ]
@@ -3166,7 +3186,10 @@ server <- function(input, output, session)
                         }
                     }
                     print(hotspotsWithNone)
-                    dataFrame <- dataFrame[-hotspotsWithNone, ]
+                    if (length(hotspotsWithNone) > 0)
+                    {
+                        dataFrame <- dataFrame[-hotspotsWithNone, ]
+                    }
                     icons <- awesomeIconList(
                         user = makeAwesomeIcon(
                             icon = "user",
