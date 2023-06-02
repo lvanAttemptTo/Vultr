@@ -11,6 +11,7 @@ observeEvent(input$obsDateHotspotMap, {
     print(hotspotMapSettings)
 })
 
+
 observeEvent(input$hotspotMapReload, {
     print(hotspotMapSettings)
     key <- input$apikey
@@ -131,80 +132,11 @@ observeEvent(input$hotspotMapReload, {
                 locationNames <- c("User")
                 locationNames <- append(locationNames, paste0(hotspotDF$locName))
                 typeVector <- "user"
-                for (i in 1:nrow(hotspotDF))
-                {
-                    if (hotspotDF$speciesCount[i] < 20)
-                    {
-                        typeVector <- append(typeVector, "sighting1") # white
-                    }
-                    else if (hotspotDF$speciesCount[i] < 40)
-                    {
-                        typeVector <- append(typeVector, "sighting2") # lightgray
-                    }
-                    else if (hotspotDF$speciesCount[i] < 60)
-                    {
-                        typeVector <- append(typeVector, "sighting3") # beige
-                    }
-                    else if (hotspotDF$speciesCount[i] < 80)
-                    {
-                        typeVector <- append(typeVector, "sighting4") # lightgreen
-                    }
-                    else if (hotspotDF$speciesCount[i] < 100)
-                    {
-                        typeVector <- append(typeVector, "sighting5") # green
-                    }
-                    else if (hotspotDF$speciesCount[i] < 120)
-                    {
-                        typeVector <- append(typeVector, "sighting6") # darkgreen
-                    }
-                    else if (hotspotDF$speciesCount[i] < 140)
-                    {
-                        typeVector <- append(typeVector, "sighting7") # cadetblue
-                    }
-                    else if (hotspotDF$speciesCount[i] < 160)
-                    {
-                        typeVector <- append(typeVector, "sighting8") # lightblue
-                    }
-                    else if (hotspotDF$speciesCount[i] < 180)
-                    {
-                        typeVector <- append(typeVector, "sighting9") # blue
-                    }
-                    else if (hotspotDF$speciesCount[i] < 200)
-                    {
-                        typeVector <- append(typeVector, "sighting10") # darkblue
-                    }
-                    else if (hotspotDF$speciesCount[i] < 220)
-                    {
-                        typeVector <- append(typeVector, "sighting11") # pink
-                    }
-                    else if (hotspotDF$speciesCount[i] < 240)
-                    {
-                        typeVector <- append(typeVector, "sighting12") # purple
-                    }
-                    else if (hotspotDF$speciesCount[i] < 260)
-                    {
-                        typeVector <- append(typeVector, "sighting13") # darkpurple
-                    }
-                    else if (hotspotDF$speciesCount[i] < 280)
-                    {
-                        typeVector <- append(typeVector, "sighting14") # orange
-                    }
-                    else if (hotspotDF$speciesCount[i] < 300)
-                    {
-                        typeVector <- append(typeVector, "sighting15") # lightred
-                    }
-                    else if (hotspotDF$speciesCount[i] < 350)
-                    {
-                        typeVector <- append(typeVector, "sighting16") # red
-                    }
-                    else
-                    {
-                        typeVector <- append(typeVector, "sighting17") # darkred
-                    }
-                    print(i)
-                }
+                
                 print(latList)
                 print(lngList)
+                typeVector <- append(typeVector, hotspotDF$speciesCount)
+                
                 # data frame with the information
                 dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
                 icons <- awesomeIconList(
@@ -213,128 +145,10 @@ observeEvent(input$hotspotMapReload, {
                         iconColor = "black",
                         library = "fa",
                         markerColor = "darkblue"
-                    ),
-                    sighting1 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "white",
-                        
-                    ),
-                    sighting2 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "lightgray",
-                        
-                    ),
-                    sighting3 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "beige",
-                        
-                    ),
-                    sighting4 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "lightgreen",
-                        
-                    ),
-                    sighting5 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "green",
-                        
-                    ),
-                    sighting6 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "darkgreen",
-                        
-                    ),
-                    sighting7 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "cadetblue",
-                        
-                    ),
-                    sighting8 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "lightblue",
-                        
-                    ),
-                    sighting9 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "blue",
-                        
-                    ),
-                    sighting10 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "darkblue",
-                        
-                    ),
-                    sighting11 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "pink",
-                        
-                    ),
-                    sighting12 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "purple",
-                        
-                    ),
-                    sighting13 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "darkpurple",
-                        
-                    ),
-                    sighting14 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "orange",
-                        
-                    ),
-                    sighting15 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "lightred",
-                        
-                    ),
-                    sighting16 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "red",
-                        
-                    ),
-                    sighting17 = makeAwesomeIcon(
-                        icon = "fire",
-                        iconColor = "black",
-                        library = "fa",
-                        markerColor = "darkred",
-                        
                     )
                 )
-                }
+                
+            }
         }
         else if (hotspotMapSettings[1] == "newSpeciesCount")
         {
@@ -353,7 +167,6 @@ observeEvent(input$hotspotMapReload, {
                         minSpeciesVec <- append(minSpeciesVec, i)
                     }
                 }
-                hotspotDF <- hotspotDF[-minSpeciesVec, ]
                 if (length(minSpeciesVec) > 0)
                 {
                     hotspotDF <- hotspotDF[-minSpeciesVec, ]
@@ -455,7 +268,6 @@ observeEvent(input$hotspotMapReload, {
                 
                 # data frame with the information
                 dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
-                print(dataFrame[511,])
                 hotspotsWithNone <- c()
                 for (i in 1:nrow(dataFrame))
                 {
@@ -465,8 +277,10 @@ observeEvent(input$hotspotMapReload, {
                         hotspotsWithNone <- append(hotspotsWithNone, i)
                     }
                 }
-                print(hotspotsWithNone)
-                dataFrame <- dataFrame[-hotspotsWithNone, ]
+                if (length(hotspotsWithNone) > 0)
+                {
+                    dataFrame <- dataFrame[-hotspotsWithNone, ]
+                }
                 icons <- awesomeIconList(
                     user = makeAwesomeIcon(
                         icon = "user",
@@ -650,43 +464,43 @@ observeEvent(input$hotspotMapReload, {
                     {
                         typeVector <- append(typeVector, "sighting13") # green
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 5)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 5)
                     {
                         typeVector <- append(typeVector, "sighting12") # darkgreen
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 6)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 6)
                     {
                         typeVector <- append(typeVector, "sighting11") # cadetblue
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 7)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 7)
                     {
                         typeVector <- append(typeVector, "sighting10") # lightblue
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 8)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 8)
                     {
                         typeVector <- append(typeVector, "sighting9") # blue
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 9)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 9)
                     {
                         typeVector <- append(typeVector, "sighting8") # darkblue
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 10)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 10)
                     {
                         typeVector <- append(typeVector, "sighting7") # pink
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 11)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 11)
                     {
                         typeVector <- append(typeVector, "sighting6") # purple
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 12)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 12)
                     {
                         typeVector <- append(typeVector, "sighting5") # darkpurple
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 13)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 13)
                     {
                         typeVector <- append(typeVector, "sighting4") # orange
                     }
-                    else if difftime(currentDate ,hotspotDF$lastSighting[i]) == 14)
+                    else if (difftime(currentDate ,hotspotDF$lastSighting[i]) == 14)
                     {
                         typeVector <- append(typeVector, "sighting3") # lightred
                     }
@@ -694,21 +508,147 @@ observeEvent(input$hotspotMapReload, {
                     {
                         typeVector <- append(typeVector, "sighting2") # red
                     }
-                    
-                    
                 }
+                dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
+                icons <- awesomeIconList(
+                    user = makeAwesomeIcon(
+                        icon = "user",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkblue"
+                    ),
+                    sighting1 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "white",
+                        
+                    ),
+                    sighting2 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "lightgray",
+                        
+                    ),
+                    sighting3 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "beige",
+                        
+                    ),
+                    sighting4 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "lightgreen",
+                        
+                    ),
+                    sighting5 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "green",
+                        
+                    ),
+                    sighting6 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkgreen",
+                        
+                    ),
+                    sighting7 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "cadetblue",
+                        
+                    ),
+                    sighting8 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "lightblue",
+                        
+                    ),
+                    sighting9 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "blue",
+                        
+                    ),
+                    sighting10 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkblue",
+                        
+                    ),
+                    sighting11 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "pink",
+                        
+                    ),
+                    sighting12 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "purple",
+                        
+                    ),
+                    sighting13 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkpurple",
+                        
+                    ),
+                    sighting14 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "orange",
+                        
+                    ),
+                    sighting15 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "lightred",
+                        
+                    ),
+                    sighting16 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "red",
+                        
+                    ),
+                    sighting17 = makeAwesomeIcon(
+                        icon = "fire",
+                        iconColor = "black",
+                        library = "fa",
+                        markerColor = "darkred",
+                        
+                    )
+                )
             }
+        }
             
-        }
-        
-            output$hotspotMap <- renderLeaflet({
-                leaflet(data = dataFrame) %>%
-                    addProviderTiles(providers$Esri.WorldImagery)%>%
-                    addProviderTiles(providers$Stamen.TonerLabels) %>%
-                    addAwesomeMarkers(~long, ~lat, icon = ~icons[type], label = ~label)
-                
-            })
-        }
+        output$hotspotMap <- renderLeaflet({
+            leaflet(data = dataFrame) %>%
+                addProviderTiles(providers$Esri.WorldImagery)%>%
+                addProviderTiles(providers$Stamen.TonerLabels) %>%
+                addCircleMarkers(lng = ~long, lat = ~lat, color = markerColor(~type), label = ~label)%>%
+                addAwesomeMarkers(~long[1], ~lat[1], icon = ~icons["user"], label = "User")
+            
+        })
+    }
     
 })
 

@@ -1,14 +1,3 @@
-# installs packages that are not installed
-
-# list of required packages
-packageList <- c("tidyverse", "rebird", "shiny", "shinyWidgets", "shinydashboard",
-                 "shinydashboardPlus", "auk", "dynutils", "shinyalert", "contactdata",
-                 "countrycode", "geosphere", "shinyjs", "fresh", "leaflet", "dplyr",
-                 "shinyBS", "maps", "FlickrAPI", "shinymanager", "scrypt")
-newPackages <- packageList[!(packageList %in% installed.packages()[,"Package"])]
-
-if(length(newPackages)) install.packages(newPackages)
-
 library("tidyverse")
 library("rebird")
 library("shiny")
@@ -33,11 +22,29 @@ library("RSQLite")
 library("glue")
 library("DBI")
 library("lubridate")
-
-
+library("remotes")
+library("colormod")
 # custom ebird API library
 source("Pelican/Pelican.R")
-
+markerColor <- function(value)
+{
+    if (value != "user")
+    {
+        angle <- (60 + (3 * value)/4)/360
+        if (angle > 1)
+        {
+            angle <- 1
+        }
+        print(angle)
+        
+        return((hsv(angle, 1, 1, 1)))
+    }
+    else
+    {
+        return("#ffffff")
+    }
+}
+print(markerColor(150))
 # import for ebird life list
 
 # ebirdLifeList <- read.csv("ebird_world_life_list.csv")$Common.Name

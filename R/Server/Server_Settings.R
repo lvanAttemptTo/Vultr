@@ -37,13 +37,17 @@ observeEvent(input$locationInMap_click, {
     print(country1)
     pos <- which(iso3166 == country1, arr.ind = TRUE)[1,1]
     country2 <- iso3166[pos, "ISOname"]
-
-    updateSelectInput(
-        inputId = "country",
-        label = "Country",
-        choices = countryList,
-        selected = country2
-    )
+    print(country2)
+    print(input$country)
+    if (country2 != input$country)
+    {
+        updateSelectInput(
+            inputId = "country",
+            label = "Country",
+            choices = countryList,
+            selected = country2
+        )
+    }
     
 })
 
@@ -82,9 +86,9 @@ output$APILink <- renderUI({
 # code that updates when a new country is selected 
 # it is used to set the list of states in the country and add them to the
 # drop down menu
-observeEvent(c(input$country, input$longitudeinput), {
+observeEvent(c(input$country), {
     key <- input$apikey # key for the ebird API
-    if (key != "" & !signedInFlag)
+    if (key != "" & signedInFlag)
     {
         country <- input$country # full name of country selected
         # 2 char code for the country that ebird uses to look stuff up
@@ -105,9 +109,11 @@ observeEvent(c(input$country, input$longitudeinput), {
             {
                 state <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "state"))
                 print(state)
+                if (!is.na(state))
+                {
                 if (grepl(":", state))
                     print(state)
-                    {
+                {
                     if (unlist(strsplit(state, ":"))[1] %in% statesList)
                     {
                         state <- unlist(strsplit(state, ":"))[1]
@@ -116,7 +122,7 @@ observeEvent(c(input$country, input$longitudeinput), {
                     {
                         state <- unlist(strsplit(state, ":"))[2]
                     }
-                }
+                    }
                 print(state)
                 updateSelectInput(
                     inputId = "state",
@@ -124,14 +130,23 @@ observeEvent(c(input$country, input$longitudeinput), {
                     choices = statesList,
                     selected = state
                 )
+                
+                }
+                else
+                {
+                    updateSelectInput(
+                        inputId = "state",
+                        label = "State",
+                        choices = statesList
+                    )
+                }
             }
             else 
             {
                 updateSelectInput(
                     inputId = "state",
                     label = "State",
-                    choices = statesList,
-                    selected = NULL
+                    choices = statesList
                 )
             }
             # end of tibble check
@@ -151,6 +166,66 @@ observeEvent(c(input$country, input$longitudeinput), {
                 selected = "None"
             )
         }
+    }
+    else if (key != "")
+    {
+        country <- input$country # full name of country selected
+        # 2 char code for the country that ebird uses to look stuff up
+        countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
+        # tibble that rebird returns that is 2 x n (state code, full name)
+        statesTibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
+        # list that will store all the full names of the states
+        statesList <- list()
+        # checks to make sure that the tibble retrieval worked
+        if (nrow(statesTibble) > 0)
+        {
+            # loops through every row of the tibble and adds the full name to "statesList"
+            statesList <- as.list(statesTibble$name)
+        }
+        if (countryCode == "US" & input$specificlocationtoggle == TRUE)
+        {
+            state <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "state"))
+            print(state)
+            if (!is.na(state))
+            {
+                if (grepl(":", state))
+                    print(state)
+                {
+                    if (unlist(strsplit(state, ":"))[1] %in% statesList)
+                    {
+                        state <- unlist(strsplit(state, ":"))[1]
+                    }
+                    else
+                    {
+                        state <- unlist(strsplit(state, ":"))[2]
+                    }
+                    }
+                print(state)
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = statesList,
+                    selected = state
+                )
+            }
+            else
+            {
+                updateSelectInput(
+                    inputId = "state",
+                    label = "State",
+                    choices = statesList
+                )
+            }
+        }
+        else 
+        {
+            updateSelectInput(
+                inputId = "state",
+                label = "State",
+                choices = statesList
+            )
+        }
+        
     }
     signedInFlag <<- FALSE
     # end of observe event for country selection
@@ -195,7 +270,7 @@ observeEvent(input$state, ignoreInit = TRUE, {
                     county <- str_to_title(map.where(x = input$longitudeinput, y = input$latiudeinput, database = "county"))
                     print(county)
                     county <- unlist(strsplit(county, ","))[2]
-    
+                    
                     updateSelectInput(
                         inputId = "county",
                         label = "County",
@@ -228,6 +303,6 @@ observeEvent(input$state, ignoreInit = TRUE, {
             # end of state check
         }
     }
-    signedInFlag <<- FALSE
+    
     # end of observe event for state select
 })
