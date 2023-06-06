@@ -262,9 +262,8 @@ nearbyHotspots <- function(key = NA, lat = NA, lng = NA, dist = 25, back = NA)
                 parsedSightingInformation[i,] <- testParse3
             }
         }
-        parsedSightingInformation[i,] <- testParse3
     }
     return(parsedSightingInformation)
 }
 
-nearbyHotspots(key = "vmgu1o6c6ihc", lat = 45.5896568645855, lng = -122.738592624664)
+print(nearbyHotspots(key = "vmgu1o6c6ihc", lat = 45.5896568645855, lng = -122.738592624664))
