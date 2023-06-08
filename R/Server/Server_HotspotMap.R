@@ -130,12 +130,12 @@ observeEvent(input$hotspotMapReload, {
                 latList <- append(latList, hotspotDF$lat)
                 lngList <- append(lngList, hotspotDF$lng)
                 locationNames <- c("User")
-                locationNames <- append(locationNames, paste0(hotspotDF$locName))
                 typeVector <- 0
                 
                 print(latList)
                 print(lngList)
                 typeVector <- append(typeVector, hotspotDF$speciesCount)
+                locationNames <- append(locationNames, paste0(hotspotDF$locName, ", ", typeVector[2:length(typeVector)], " Species."))
                 
                 # data frame with the information
                 dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
@@ -147,13 +147,14 @@ observeEvent(input$hotspotMapReload, {
                         markerColor = "darkblue"
                     )
                 )
+                mrckColor <- markerColor(max(typeVector))
                 output$hotspotMap <- renderLeaflet({
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~markerColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
-                        addAwesomeMarkers(~long[1], ~lat[1], icon = ~icons["user"], label = "User") %>%
-                        addLegend_decreasing("bottomright", pal = markerColor, values = ~type, title = "Species", opacity = 1, decreasing = TRUE, bins = 10)
+                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
+                        addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
+                        addLegend_decreasing("bottomright", pal = mrckColor, values = ~type, title = "Species", opacity = 1, decreasing = TRUE, bins = 10)
                     
                 })
             }
@@ -184,43 +185,66 @@ observeEvent(input$hotspotMapReload, {
                 latList <- append(latList, hotspotDF$lat)
                 lngList <- append(lngList, hotspotDF$lng)
                 locationNames <- c("User")
-                locationNames <- append(locationNames, paste0(hotspotDF$locName))
+                
                 typeVector <- 0
                 hotspotNewSpeciesCount <- c()
-                for (i in 1:nrow(hotspotDF))
+                lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
+                if (!is.null(lifeList))
                 {
-                    suppressWarnings({
-                        temp <- ebirdregion(loc = hotspotDF$locId[i], key = key, back = input$daysback)
-                        if (nrow(temp) > 0)
-                        {
-                            lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
-                            hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, length(setdiff(temp$comName, lifeList)))
-                        }
-                        else
-                        {
-                            hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, 0)
-                        }
-                    })
+                    for (i in 1:nrow(hotspotDF))
+                    {
+                        
+                        print(lifeList)
+                        suppressWarnings({
+                            temp <- ebirdregion(loc = hotspotDF$locId[i], key = key, back = input$daysback)
+                            
+                            if (nrow(temp) > 0)
+                            {
+                                
+                                hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, length(setdiff(temp$comName, lifeList)))
+                            }
+                            else
+                            {
+                                hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, 0)
+                            }
+                            if (hotspotDF$locName[i] == "Keāhole Point")
+                            {
+                                print(temp)
+                                print(length(setdiff(temp$comName, lifeList)))
+                            }
+                        })
+                    }
+                }
+                else
+                {
+                    hotspotNewSpeciesCount <- append(hotspotNewSpeciesCount, hotspotDF$speciesCount)
                 }
                 print(hotspotNewSpeciesCount)
                 
                 typeVector <- append(typeVector, hotspotNewSpeciesCount)
+                locationNames <- append(locationNames, paste0(hotspotDF$locName, ", ", typeVector[2:length(typeVector)], " New Species."))
                 
                 # data frame with the information
                 dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
-                hotspotsWithNone <- c()
-                for (i in 1:nrow(dataFrame))
-                {
-                    print(i)
-                    if (hotspotNewSpeciesCount[i] == 0)
-                    {
-                        hotspotsWithNone <- append(hotspotsWithNone, i)
-                    }
-                }
-                if (length(hotspotsWithNone) > 0)
-                {
-                    dataFrame <- dataFrame[-hotspotsWithNone, ]
-                }
+                print(dataFrame)
+                # for (i in 1:length(hotspotNewSpeciesCount))
+                # {
+                #     print(i)
+                #     if (hotspotNewSpeciesCount[i] == 0)
+                #     {
+                #         hotspotsWithNone <- append(hotspotsWithNone, i)
+                #     }
+                # }
+                # if (length(hotspotsWithNone) > 0)
+                # {
+                #     dataFrame <- dataFrame[-hotspotsWithNone, ]
+                #     typeVector <- append(typeVector, hotspotNewSpeciesCount[-hotspotsWithNone])
+                # }
+                # else
+                # {
+                #     typeVector <- append(typeVector, hotspotNewSpeciesCount)
+                # }
+                
                 icons <- awesomeIconList(
                     user = makeAwesomeIcon(
                         icon = "user",
@@ -229,13 +253,24 @@ observeEvent(input$hotspotMapReload, {
                         markerColor = "darkblue"
                     )
                 )
+                mrckColor <- markerColor(max(dataFrame$type))
+                if (max(dataFrame$type) < 10)
+                {
+                    numBins <- max(dataFrame$type)
+                }
+                else
+                {
+                    numBins <- 10
+                    
+                }
+                print(numBins)
                 output$hotspotMap <- renderLeaflet({
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~markerColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
-                        addAwesomeMarkers(~long[1], ~lat[1], icon = ~icons["user"], label = "User") %>%
-                        addLegend_decreasing("bottomright", pal = markerColor, values = ~type, title = "New Species", opacity = 1, decreasing = TRUE, bins = 10)
+                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
+                        addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
+                        addLegend_decreasing("bottomright", pal = mrckColor, values = ~type, title = "New Species", opacity = 1, decreasing = TRUE, bins = numBins)
                     
                 })
             }
@@ -265,11 +300,11 @@ observeEvent(input$hotspotMapReload, {
                 latList <- append(latList, hotspotDF$lat)
                 lngList <- append(lngList, hotspotDF$lng)
                 locationNames <- c("User")
-                locationNames <- append(locationNames, paste0(hotspotDF$locName))
+                
                 typeVector <- 0
                 daysback = input$daysback
                 typeVector <- append(typeVector, difftime(currentDate, hotspotDF$lastSighting, units = "days"))
-                
+                locationNames <- append(locationNames, paste0(hotspotDF$locName, ", Last Visited ", floor(typeVector[2:length(typeVector)]), " Days Ago."))
                 
                 dataFrame <- data.frame(lat = latList, long = lngList, type = typeVector, label = locationNames)
                 icons <- awesomeIconList(
@@ -280,13 +315,14 @@ observeEvent(input$hotspotMapReload, {
                         markerColor = "darkblue"
                     )
                 )
+                mrckColor <- markerColorDate(daysback)
                 output$hotspotMap <- renderLeaflet({
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~markerColor(500 - ((500 / daysback) * type)), label = ~label, fillOpacity = 1, radius = 5) %>%
-                        addAwesomeMarkers(~long[1], ~lat[1], icon = ~icons["user"], label = "User") %>%
-                        addLegend_decreasing("bottomright", pal = markerColorDate(daysback) , values = ~type, title = "How Many Days Ago", opacity = 1, decreasing = TRUE, bins = 10)
+                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
+                        addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
+                        addLegend_decreasing("bottomright", pal = mrckColor , values = ~type, title = "How Many Days Ago", opacity = 1, decreasing = TRUE, bins = 10)
                     
                 })
             }

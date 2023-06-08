@@ -227,7 +227,7 @@ observeEvent(c(input$country), {
         }
         
     }
-    signedInFlag <<- FALSE
+    
     # end of observe event for country selection
 })
 
@@ -236,7 +236,7 @@ observeEvent(c(input$country), {
 # it is used to generate the list of counties or set them to "None"
 observeEvent(input$state, ignoreInit = TRUE, {
     key <- input$apikey # key for ebird API
-    if (key != "" & !signedInFlag)
+    if (key != "" & signedInFlag)
     {
         state <- input$state # full name of the state
         country <- input$country # full name of the country
@@ -301,6 +301,52 @@ observeEvent(input$state, ignoreInit = TRUE, {
                 # end of county check else
             }
             # end of state check
+        }
+        signedInFlag <<- FALSE
+    }
+    else
+    {
+        state <- input$state # full name of the state
+        country <- input$country # full name of the country
+        # 2 character country code
+        countryCode <- countrycode(country,origin = 'country.name', destination = 'iso2c')
+        # tibble that rebird returns that is 2 x n (state code, full name)
+        subregion1Tibble <- ebirdsubregionlist("subnational1", countryCode, key = key)
+        # checks if state is not an empty string
+        if (state != "None")
+        {
+            stateCode <- "" # state code
+            # goes through the subregion1 tibble to find what the ebird code is
+            # for the state
+            # this block of code finds the ebird code for the state
+            stateCode <- subregion1Tibble[[as.integer(searchTibble(subregion1Tibble, state)[1]), 1]]
+            
+            # tibble the rebird that contains the ebird code for the county and 
+            # full names of the counties 
+            countyTibble <- ebirdsubregionlist("subnational2", stateCode, key = key)
+            countyList <- list() # list that will store the full names of the counties
+            # checks if there are counties for the state
+            if (nrow(countyTibble) > 0)
+            {
+                # goes through all the counties and add the full name to the list
+                countyList <- as.list(countyTibble$name)
+                updateSelectInput(
+                    inputId = "county",
+                    label = "County",
+                    choices = countyList,
+                    selected = NULL
+                )
+            }
+            else
+            {
+                updateSelectInput(
+                    inputId = "county",
+                    label = "County",
+                    choices = c("None"),
+                    selected = "None"
+                    
+                )
+            }
         }
     }
     

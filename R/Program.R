@@ -26,12 +26,15 @@ library("remotes")
 library("colormod")
 # custom ebird API library
 source("Pelican/Pelican.R")
-markerColor <- colorNumeric(palette = c("white", 'lightgray', "beige", "lightgreen", "green", "darkgreen", "lightblue", "cadetblue", "blue", "darkblue", "pink", "purple", "orange", "red", "darkred"), 0:500)
+markerColor <- function(maxSpecies)
+{
+    return(colorNumeric(palette = c("#d2faf9", "yellow", "red", "darkred"), 0:maxSpecies))
+}
 markerColorDate <- function(daysback)
 {
-    return(colorNumeric(palette = c("white", 'lightgray', "beige", "lightgreen", "green", "darkgreen", "lightblue", "cadetblue", "blue", "darkblue", "pink", "purple", "orange", "red", "darkred"), 0:daysback))
+    return(colorNumeric(palette = c("darkred", "red", "yellow", "#d2faf9"), 0:daysback))
 }
-print(markerColor(500))
+
 # reverse legend
 addLegend_decreasing <- function (map, position = c("topright", "bottomright", "bottomleft", 
                                                     "topleft"), pal, values, na.label = "NA", bins = 7, colors, 
@@ -138,16 +141,17 @@ addLegend_decreasing <- function (map, position = c("topright", "bottomright", "
 }
 # import for ebird life list
 
-# ebirdLifeList <- read.csv("ebird_world_life_list.csv")$Common.Name
-# tempStr <- ""
-# for (i in ebirdLifeList)
-# {
-#     tempStr <- paste0(tempStr, ";", i)
-# }
-# print(tempStr)
+ebirdLifeList <- read.csv("ebird_world_life_list.csv")$Common.Name
+tempStr <- ""
+for (i in ebirdLifeList)
+{
+    tempStr <- paste0(tempStr, ";", i)
+}
+print(tempStr)
 flickerAPIkey <- "282bedc95f24d8bb2638d1c9f6c7a7fa"
 
 currentDate <- Sys.Date()
+print(currentDate)
 
 speciesCodeList <- list()
 
