@@ -1,3 +1,4 @@
+
 library("tidyverse")
 library("rebird")
 library("shiny")
@@ -24,6 +25,7 @@ library("DBI")
 library("lubridate")
 library("remotes")
 library("colormod")
+library(htmltools)
 # custom ebird API library
 source("Pelican/Pelican.R")
 markerColor <- function(maxSpecies)

@@ -152,7 +152,7 @@ observeEvent(input$hotspotMapReload, {
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
+                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5, popup = ~htmlEscape(label)) %>%
                         addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
                         addLegend_decreasing("bottomright", pal = mrckColor, values = ~type, title = "Species", opacity = 1, decreasing = TRUE, bins = 10)
                     
@@ -268,7 +268,7 @@ observeEvent(input$hotspotMapReload, {
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
+                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5, popup = ~htmlEscape(label)) %>%
                         addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
                         addLegend_decreasing("bottomright", pal = mrckColor, values = ~type, title = "New Species", opacity = 1, decreasing = TRUE, bins = numBins)
                     
@@ -320,7 +320,7 @@ observeEvent(input$hotspotMapReload, {
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5) %>%
+                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5, popup = ~htmlEscape(label)) %>%
                         addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
                         addLegend_decreasing("bottomright", pal = mrckColor , values = ~type, title = "How Many Days Ago", opacity = 1, decreasing = TRUE, bins = 10)
                     

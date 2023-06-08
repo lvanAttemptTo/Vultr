@@ -332,10 +332,64 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             # end of reactive search
             }
         }
-        else
-        {
-            shinyalert("Invalid Species", "")
+        else {
+            hotspotDF <- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius, back = input$daysback)
+            hotspotDF$locName <- tolower(hotspotDF$locName)
+            hotspotIndex <- which(hotspotDF$locName == tolower(speciesInput), arr.ind = TRUE)
+            print(hotspotIndex)
+            if (length(hotspotIndex) == 1)
+            {
+                hotspot <- hotspotDF[hotspotIndex, ]
+                print(hotspot)
+                hotspotExtraInfo <- ebirdregion(loc = hotspot$locId, key = key, back = input$daysback)
+                if (nrow(hotspotExtraInfo) > 0)
+                {
+                    lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
+                    if (!is.null(lifeList))
+                    {
+                        newSpecies <- setdiff(hotspotExtraInfo$comName, lifeList)
+                    }
+                    else
+                    {
+                        newSpecies <- hotspotExtraInfo$comName
+                    }
+                    hotspotInfoText <- paste0(
+                        "Number of Species: ",
+                        hotspot$speciesCount,
+                        "<br/>Last Sighting: ",
+                        hotspot$lastSighting,
+                        "<br/>Number of New Species: ",
+                        length(newSpecies),
+                        "<br/>New Species:<br/>",
+                        paste(newSpecies, collapse = "<br/>"),
+                        "<br/>Species:<br/>",
+                        paste(hotspotExtraInfo$comName, collapse = "<br/>")
+                        
+                        
+                    )
+                }
+                else
+                {
+                    hotspotInfoText <- paste0(
+                        "Number of Species: ",
+                        hotspot$speciesCount,
+                        "<br/>Last Sighting: ",
+                        hotspot$lastSighting
+                        
+                    )
+                }
+                output$hotspotInfoTitle <- renderUI({
+                    str_to_title(hotspot$locName)
+                })
+                output$hotspotInfo <- renderUI({
+                    HTML(hotspotInfoText)
+                })
+            }
         }
+        # else
+        # {
+        #     shinyalert("Invalid Species", "")
+        # }
     }
     else
     {

@@ -34,7 +34,7 @@ ui <- function()
             sidebarMenu(
                 id = "tabs",
                 
-                sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search Species"),
+                sidebarSearchForm(textId = "species", buttonId = "speciesSearchButton", label = "Search..."),
                 menuItem(
                     "Account",
                      menuItemOutput("loginName"),
@@ -165,8 +165,7 @@ ui <- function()
                             
                             
                         ),
-                        leafletOutput("hotspotMap"), 
-                        uiOutput("hotspotList")
+                        leafletOutput("hotspotMap")
                     )
                 ),
                 
@@ -174,15 +173,15 @@ ui <- function()
                     tabName = "hotspotInfo",
                     box(
                         # box appearance settings 
-                        title = "",
+                        title = uiOutput("hotspotInfoTitle"),
                         background = "black",
                         collapsible = TRUE,
                         solidHeader = TRUE,
                         width = 12,
                         height = 24,
-                        status = "primary"
+                        status = "primary",
                         
-                        
+                        uiOutput("hotspotInfo")
                     )
                 )
                 
