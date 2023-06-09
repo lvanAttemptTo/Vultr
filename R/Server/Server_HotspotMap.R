@@ -344,30 +344,56 @@ observeEvent(input$hotspotMap_marker_click, {
         hotspot <- hotspotDF[index, ]
         print(hotspot)
         hotspotExtraInfo <- ebirdregion(loc = hotspot$locId, key = input$apikey, back = input$daysback)
-        if (nrow(hotspotExtraInfo) > 0)
+        hotspotSpeciesEver <- ebirdregionspecies(loc = hotspot$locId, key = input$apikey)$speciesCode
+        for (i in 1:length(hotspotSpeciesEver))
+        {
+            hotspotSpeciesEver[i] <- ebirdCodeToCommon(hotspotSpeciesEver[i])
+        }
+        print(hotspotExtraInfo)
+        if (nrow(hotspotExtraInfo) > 0 & length(hotspotSpeciesEver))
         {
             lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
             if (!is.null(lifeList))
             {
                 newSpecies <- setdiff(hotspotExtraInfo$comName, lifeList)
+                newSpeciesEver <- setdiff(hotspotSpeciesEver, lifeList)
             }
             else
             {
                 newSpecies <- hotspotExtraInfo$comName
+                newSpeciesEver <- hotspotSpeciesEver
             }
+            print(hotspotExtraInfo)
             hotspotInfoText <- paste0(
                 "Number of Species: ",
                 hotspot$speciesCount,
                 "<br/>Last Sighting: ",
                 hotspot$lastSighting,
-                "<br/>Number of New Species: ",
+                "<br/>Number of Species In Last ",
+                input$daysback,
+                " Days: ",
+                length(hotspotExtraInfo$comName),
+                "<br/>Number of New Species In Last ",
+                input$daysback,
+                " Days: ",
                 length(newSpecies),
-                "<br/>New Species:<br/>",
+                "<br/>New Species In Last ",
+                input$daysback,
+                " Days:<br/>",
                 paste(newSpecies, collapse = "<br/>"),
+                "<br/><br/>Species in last ",
+                input$daysback,
+                " Days:<br/>",
+                paste(hotspotExtraInfo$comName, collapse = "<br/>"),
+                "<br/><br/>Number of New Species: ",
+                length(newSpeciesEver),
+                "<br/>New Species:<br/>",
+                paste(newSpeciesEver, collapse = "<br/>"),
+                "<br/><br/>Number of Species: ",
+                length(hotspotSpeciesEver),
                 "<br/>Species:<br/>",
-                paste(hotspotExtraInfo$comName, collapse = "<br/>")
-                
-                
+                paste(hotspotSpeciesEver, collapse = "<br/>")
+
             )
         }
         else
