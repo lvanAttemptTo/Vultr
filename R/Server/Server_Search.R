@@ -333,13 +333,13 @@ observeEvent(ignoreInit = TRUE, c(input$speciesSearchButton), {
             }
         }
         else {
-            hotspotDF <- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius, back = input$daysback)
-            hotspotDF$locName <- tolower(hotspotDF$locName)
-            hotspotIndex <- which(hotspotDF$locName == tolower(speciesInput), arr.ind = TRUE)
+            hotspotDF2 <- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius, back = input$daysback)
+            hotspotDF2$locName <- tolower(hotspotDF2$locName)
+            hotspotIndex <- which(hotspotDF2$locName == tolower(speciesInput), arr.ind = TRUE)
             print(hotspotIndex)
             if (length(hotspotIndex) == 1)
             {
-                hotspot <- hotspotDF[hotspotIndex, ]
+                hotspot <- hotspotDF2[hotspotIndex, ]
                 print(hotspot)
                 hotspotExtraInfo <- ebirdregion(loc = hotspot$locId, key = key, back = input$daysback)
                 if (nrow(hotspotExtraInfo) > 0)

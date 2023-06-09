@@ -101,7 +101,7 @@ observeEvent(input$hotspotMapReload, {
         }
         
         
-        hotspotDF <- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius, back = input$daysback)
+        hotspotDF <<- nearbyHotspots(key = key, lat = latitude, lng = longitude, dist = input$radius, back = input$daysback)
         print(hotspotDF)
         if (hotspotMapSettings[1] == "speciesCount")
         {
@@ -152,9 +152,9 @@ observeEvent(input$hotspotMapReload, {
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5, popup = ~htmlEscape(label)) %>%
+                        addCircleMarkers(lng = ~long[2:nrow(dataFrame)], lat = ~lat[2:nrow(dataFrame)], color = ~mrckColor(type[2:nrow(dataFrame)]), label = ~label[2:nrow(dataFrame)], fillOpacity = 1, radius = 5) %>%
                         addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
-                        addLegend_decreasing("bottomright", pal = mrckColor, values = ~type, title = "Species", opacity = 1, decreasing = TRUE, bins = 10)
+                        addLegend_decreasing("bottomright", pal = mrckColor, values = ~type[2:nrow(dataFrame)], title = "Species", opacity = 1, decreasing = TRUE, bins = 10)
                     
                 })
             }
@@ -268,9 +268,9 @@ observeEvent(input$hotspotMapReload, {
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5, popup = ~htmlEscape(label)) %>%
+                        addCircleMarkers(lng = ~long[2:nrow(dataFrame)], lat = ~lat[2:nrow(dataFrame)], color = ~mrckColor(type[2:nrow(dataFrame)]), label = ~label[2:nrow(dataFrame)], fillOpacity = 1, radius = 5) %>%
                         addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
-                        addLegend_decreasing("bottomright", pal = mrckColor, values = ~type, title = "New Species", opacity = 1, decreasing = TRUE, bins = numBins)
+                        addLegend_decreasing("bottomright", pal = mrckColor, values = ~type[2:nrow(dataFrame)], title = "New Species", opacity = 1, decreasing = TRUE, bins = numBins)
                     
                 })
             }
@@ -320,9 +320,9 @@ observeEvent(input$hotspotMapReload, {
                     leaflet(data = dataFrame) %>%
                         addProviderTiles(providers$Esri.WorldImagery) %>%
                         addProviderTiles(providers$Stamen.TonerLabels) %>%
-                        addCircleMarkers(lng = ~long, lat = ~lat, color = ~mrckColor(type), label = ~label, fillOpacity = 1, radius = 5, popup = ~htmlEscape(label)) %>%
+                        addCircleMarkers(lng = ~long[2:nrow(dataFrame)], lat = ~lat[2:nrow(dataFrame)], color = ~mrckColor(type[2:nrow(dataFrame)]), label = ~label[2:nrow(dataFrame)], fillOpacity = 1, radius = 5) %>%
                         addAwesomeMarkers(~longitude, ~latitude, icon = ~icons["user"], label = "User") %>%
-                        addLegend_decreasing("bottomright", pal = mrckColor , values = ~type, title = "How Many Days Ago", opacity = 1, decreasing = TRUE, bins = 10)
+                        addLegend_decreasing("bottomright", pal = mrckColor , values = ~type[2:nrow(dataFrame)], title = "How Many Days Ago", opacity = 1, decreasing = TRUE, bins = 10)
                     
                 })
             }
@@ -333,4 +333,58 @@ observeEvent(input$hotspotMapReload, {
     
 })
 
+observeEvent(input$hotspotMap_marker_click, {
+    latMatches <- which(hotspotDF$lat == input$hotspotMap_marker_click$lat, arr.ind = TRUE)
+    lngMatches <- which(hotspotDF$lng == input$hotspotMap_marker_click$lng, arr.ind = TRUE)
+    index <- intersect(latMatches, lngMatches)
 
+   
+    if (length(index) == 1)
+    {
+        hotspot <- hotspotDF[index, ]
+        print(hotspot)
+        hotspotExtraInfo <- ebirdregion(loc = hotspot$locId, key = input$apikey, back = input$daysback)
+        if (nrow(hotspotExtraInfo) > 0)
+        {
+            lifeList <- unlist(str_split(user_info()$lifeList, "[;]"))
+            if (!is.null(lifeList))
+            {
+                newSpecies <- setdiff(hotspotExtraInfo$comName, lifeList)
+            }
+            else
+            {
+                newSpecies <- hotspotExtraInfo$comName
+            }
+            hotspotInfoText <- paste0(
+                "Number of Species: ",
+                hotspot$speciesCount,
+                "<br/>Last Sighting: ",
+                hotspot$lastSighting,
+                "<br/>Number of New Species: ",
+                length(newSpecies),
+                "<br/>New Species:<br/>",
+                paste(newSpecies, collapse = "<br/>"),
+                "<br/>Species:<br/>",
+                paste(hotspotExtraInfo$comName, collapse = "<br/>")
+                
+                
+            )
+        }
+        else
+        {
+            hotspotInfoText <- paste0(
+                "Number of Species: ",
+                hotspot$speciesCount,
+                "<br/>Last Sighting: ",
+                hotspot$lastSighting
+                
+            )
+        }
+        output$hotspotInfoTitle <- renderUI({
+            str_to_title(hotspot$locName)
+        })
+        output$hotspotInfo <- renderUI({
+            HTML(hotspotInfoText)
+        })
+    }
+})
